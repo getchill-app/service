@@ -12,6 +12,8 @@ require (
 	github.com/keys-pub/keys-ext/http/client v0.0.0-20210327130412-59e9fcfcf22c
 	github.com/keys-pub/keys-ext/http/server v0.0.0-20210327130412-59e9fcfcf22c
 	github.com/keys-pub/keys-ext/sqlcipher v0.0.0-20210327130412-59e9fcfcf22c
+	github.com/keys-pub/keys-ext/ws/api v0.0.0-20210327130412-59e9fcfcf22c
+	github.com/keys-pub/keys-ext/ws/client v0.0.0-20210327130412-59e9fcfcf22c
 	github.com/keys-pub/vault v0.0.0-20210326211528-d0931a530263
 	github.com/mercari/go-grpc-interceptor v0.0.0-20180110035004-b8ad3827e82a
 	github.com/pkg/errors v0.9.1
@@ -20,3 +22,5 @@ require (
 	google.golang.org/grpc v1.36.1
 	google.golang.org/protobuf v1.26.0
 )
+
+replace github.com/keys-pub/vault => ../../keys.pub/vault

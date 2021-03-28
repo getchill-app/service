@@ -35,7 +35,7 @@ protoc \
   --go-patch_out=plugin=go-grpc,paths=source_relative:. \
   *.proto
 
-ts="$dir/../../app/client"
+ts="$dir/../../tsclient"
 if [ -d "$ts" ]; then
     echo "Copying proto to $ts"
     cp *.proto "$ts/proto/"

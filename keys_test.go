@@ -17,7 +17,7 @@ import (
 
 func TestKeys(t *testing.T) {
 	SetLogger(NewLogger(DebugLevel))
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	ctx := context.TODO()
 
 	// Alice
@@ -115,7 +115,7 @@ func TestKeys(t *testing.T) {
 }
 
 func TestKeysMissingSigchain(t *testing.T) {
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
@@ -151,13 +151,13 @@ type testUser struct {
 	Response string
 }
 
-func testUserSetupGithub(t *testing.T, env *testEnv, service *service, key *keys.EdX25519Key, username string) *testUser {
-	tu, err := userSetupGithub(env, service, key, username)
+func testUserSetupGithub(t *testing.T, serverEnv *testServerEnv, service *service, key *keys.EdX25519Key, username string) *testUser {
+	tu, err := userSetupGithub(serverEnv, service, key, username)
 	require.NoError(t, err)
 	return tu
 }
 
-func userSetupGithub(env *testEnv, service *service, key *keys.EdX25519Key, username string) (*testUser, error) {
+func userSetupGithub(serverEnv *testServerEnv, service *service, key *keys.EdX25519Key, username string) (*testUser, error) {
 	serviceName := "github"
 	resp, err := service.UserSign(context.TODO(), &UserSignRequest{
 		KID:     key.ID().String(),
@@ -173,8 +173,11 @@ func userSetupGithub(env *testEnv, service *service, key *keys.EdX25519Key, user
 	api := "https://api.github.com/gists/" + id
 	body := []byte(githubMock(username, id, resp.Message))
 
-	// Set proxy response
+	// Set proxy response (for local)
 	service.users.Client().SetProxy(api, func(ctx context.Context, req *http.Request) http.ProxyResponse {
+		return http.ProxyResponse{Body: body}
+	})
+	serverEnv.client.SetProxy(api, func(ctx context.Context, req *http.Request) http.ProxyResponse {
 		return http.ProxyResponse{Body: body}
 	})
 

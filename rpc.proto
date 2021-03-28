@@ -14,8 +14,9 @@ service RPC {
   rpc AuthSetup(AuthSetupRequest) returns (AuthSetupResponse) {}
   rpc AuthUnlock(AuthUnlockRequest) returns (AuthUnlockResponse) {}
   rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {}
-  rpc RuntimeStatus(RuntimeStatusRequest) returns (RuntimeStatusResponse) {}
-  // END NO AUTH
+  rpc AuthReset(AuthResetRequest) returns (AuthResetResponse) {}
+  rpc Status(StatusRequest) returns (StatusResponse) {}
+  // END NO AUTH  
 
   rpc KeyGenerate(KeyGenerateRequest) returns (KeyGenerateResponse) {}
   rpc Keys(KeysRequest) returns (KeysResponse) {}
@@ -23,12 +24,44 @@ service RPC {
   rpc KeyImport(KeyImportRequest) returns (KeyImportResponse) {}
   rpc KeyExport(KeyExportRequest) returns (KeyExportResponse) {}
   rpc KeyRemove(KeyRemoveRequest) returns (KeyRemoveResponse) {}
+  rpc KeySearch(KeySearchRequest) returns (KeySearchResponse) {}
 
   rpc User(UserRequest) returns (UserResponse) {}  
   rpc UserSearch(UserSearchRequest) returns (UserSearchResponse) {}
   rpc UserService(UserServiceRequest) returns (UserServiceResponse) {}
   rpc UserSign(UserSignRequest) returns (UserSignResponse) {}
   rpc UserAdd(UserAddRequest) returns (UserAddResponse) {}    
+
+  rpc Rand(RandRequest) returns (RandResponse) {}
+  rpc RandPassword(RandPasswordRequest) returns (RandPasswordResponse) {}  
+
+  rpc Pull(PullRequest) returns (PullResponse) {}
+
+  rpc Sigchain(SigchainRequest) returns (SigchainResponse) {}
+  rpc Statement(StatementRequest) returns (StatementResponse) {}
+  rpc StatementCreate(StatementCreateRequest) returns (StatementCreateResponse) {}  
+  rpc StatementRevoke(StatementRevokeRequest) returns (StatementRevokeResponse) {}  
+
+  // Auth (edit)
+  rpc AuthProvision(AuthProvisionRequest) returns (AuthProvisionResponse) {}
+  rpc AuthDeprovision(AuthDeprovisionRequest) returns (AuthDeprovisionResponse) {}
+  rpc AuthProvisions(AuthProvisionsRequest) returns (AuthProvisionsResponse) {}  
+  rpc AuthPasswordChange(AuthPasswordChangeRequest) returns (AuthPasswordChangeResponse) {}  
+
+  // Channels
+  rpc Channels(ChannelsRequest) returns (ChannelsResponse) {}
+  rpc ChannelCreate(ChannelCreateRequest) returns (ChannelCreateResponse) {}
+  rpc ChannelInvite(ChannelInviteRequest) returns (ChannelInviteResponse) {}
+  rpc ChannelLeave(ChannelLeaveRequest) returns (ChannelLeaveResponse) {}
+  rpc ChannelRead(ChannelReadRequest) returns (ChannelReadResponse) {}
+
+  // Messages
+  rpc MessagePrepare(MessagePrepareRequest) returns (MessagePrepareResponse) {}
+  rpc MessageCreate(MessageCreateRequest) returns (MessageCreateResponse) {}
+  rpc Messages(MessagesRequest) returns (MessagesResponse) {}
+
+  // Relay
+  rpc Relay(RelayRequest) returns (stream RelayOutput) {}
 }
 
 enum AuthStatus {
@@ -81,8 +114,13 @@ message AuthUnlockResponse {
 message AuthLockRequest {}
 message AuthLockResponse {}
 
-message RuntimeStatusRequest {}
-message RuntimeStatusResponse {
+message AuthResetRequest {
+  string appName = 1;
+}
+message AuthResetResponse {}
+
+message StatusRequest {}
+message StatusResponse {
   // Version of running service.
   string version = 1;
   // AppName app name.
@@ -299,4 +337,235 @@ message Statement {
   int64 timestamp = 7;
 	// Type (optional).
   string type = 8;  
+}
+
+enum Encoding {
+  option (go.enum) = {name: "Encoding"};
+
+  HEX = 0  [(go.value) = {name: "Hex"}];
+  BASE62 = 1 [(go.value) = {name: "Base62"}];    
+  BASE58 = 2 [(go.value) = {name: "Base58"}];    
+  BASE32 = 3 [(go.value) = {name: "Base32"}];    
+  BASE16 = 4 [(go.value) = {name: "Base16"}];    
+  BASE64 = 5 [(go.value) = {name: "Base64"}];    
+  SALTPACK = 6 [(go.value) = {name: "Saltpack"}];    
+  BIP39 = 7 [(go.value) = {name: "BIP39"}];    
+}
+
+message RandRequest {
+  int32 numBytes = 1;
+  Encoding encoding = 2;
+  bool noPadding = 10;
+  bool lowercase = 11;
+}
+message RandResponse {
+  string data = 1;
+}
+
+message RandPasswordRequest {
+  int32 length = 1;
+}
+message RandPasswordResponse {
+  string password = 1;
+}
+
+message AuthProvisionRequest {
+  // Secret for auth depending on auth type, e.g. password, phrase, FIDO2 pin, etc.
+  string secret = 1;
+  // Type for auth.
+  AuthType type = 2;
+  // Device path (for FIDO2).
+  string device = 5;
+  // Generate (for FIDO2 make credential).
+  bool generate = 7;
+}
+message AuthProvisionResponse {
+  AuthProvision provision = 1;
+}
+
+message AuthDeprovisionRequest {
+  string id = 1 [(go.field) = {name: "ID"}];
+}
+message AuthDeprovisionResponse {}
+
+message AuthPasswordChangeRequest {
+  string old = 1;
+  string new = 2;
+}
+message AuthPasswordChangeResponse {}
+
+message AuthProvision {
+  string id = 1 [(go.field) = {name: "ID"}];
+  AuthType type = 2;
+  int64 createdAt = 3;
+
+  // For FIDO2
+  // AAGUID is a device "identifier" (only unique across batches for privacy reasons).
+  string aaguid = 100 [(go.field) = {name: "AAGUID"}];
+  bool noPin = 101;
+}
+
+message AuthProvisionsRequest {}
+message AuthProvisionsResponse {
+  repeated AuthProvision provisions = 1;
+}
+
+message KeySearchRequest {
+  string query = 1;  
+}
+message KeySearchResponse {
+  repeated Key keys = 1;  
+}
+
+message PullRequest {
+  string key = 1;  
+}
+message PullResponse {
+  repeated string kids = 1 [(go.field) = {name: "KIDs"}];
+}
+
+
+message SigchainRequest {
+  string kid = 1 [(go.field) = {name: "KID"}];  
+}
+message SigchainResponse {
+  Key key = 1;
+  repeated Statement statements = 2;
+}
+
+message StatementRequest {
+  string kid = 1 [(go.field) = {name: "KID"}];  
+  int32 seq = 2;
+}
+message StatementResponse {
+  Statement statement = 1;
+}
+
+message StatementCreateRequest {
+  bytes data = 1;
+  string kid = 2 [(go.field) = {name: "KID"}];  
+
+  // Local, if true, won't save to the current key server.
+  bool local = 5;
+}
+message StatementCreateResponse {
+  Statement statement = 1;
+}
+
+message StatementRevokeRequest {
+  // Seq to revoke.
+  int32 seq = 1;
+  string kid = 2 [(go.field) = {name: "KID"}];  
+
+  // Local, if true, won't save to the current key server.
+  bool local = 5;
+}
+message StatementRevokeResponse {
+  Statement statement = 1;
+}
+
+
+enum MessageStatus {
+  option (go.enum) = {name: "MessageStatus"};
+
+  MESSAGE_SENT = 0 [(go.value) = {name: "MessageSent"}];
+  MESSAGE_PENDING = 1 [(go.value) = {name: "MessagePending"}];
+  MESSAGE_ERROR = 2 [(go.value) = {name: "MessageError"}];
+}
+
+message Message {
+  string id = 1 [(go.field) = {name: "ID"}];
+  Key sender = 2;
+  repeated string text = 10;
+  
+  MessageStatus status = 20;
+  
+  int64 createdAt = 31;
+}
+
+message MessagePrepareRequest {  
+  string sender = 1;
+  string channel = 2;
+  string text = 11;
+}
+
+message MessagePrepareResponse {
+  Message message = 1;
+}
+
+message MessageCreateRequest {  
+  string sender = 1;
+  string channel = 2;
+  // ID is optional, if message was prepared you can use that ID, otherwise it 
+  // is autogenerated.
+  string id = 10 [(go.field) = {name: "ID"}];
+  string text = 11;
+}
+
+message MessageCreateResponse {
+  Message message = 1;
+}
+
+message MessagesRequest {  
+  string channel = 1;
+  
+  // Update, if true will update from the server.
+  bool update = 5;  
+}
+
+message MessagesResponse {
+  repeated Message messages = 1;
+}
+
+message Channel {
+  string id = 1 [(go.field) = {name: "ID"}];
+  string name = 2;
+  string snippet = 3;
+  int64 updatedAt = 4;
+  int64 index = 5;
+  int64 readIndex = 10;
+}
+
+message ChannelsRequest {
+  string user = 1;
+}
+message ChannelsResponse {
+  repeated Channel channels = 1;
+}
+
+message ChannelCreateRequest {
+  string name = 1;
+  string user = 2;
+}
+message ChannelCreateResponse {
+  Channel channel = 1;
+}
+
+message ChannelLeaveRequest {
+  string channel = 1;
+}
+message ChannelLeaveResponse {}
+
+message ChannelReadRequest {
+  string channel = 1;
+  int64 index = 2;
+}
+message ChannelReadResponse {}
+
+message ChannelInviteRequest {
+  string channel = 1;
+  repeated string recipients = 2;
+  string sender = 3;
+}
+message ChannelInviteResponse {
+  Message message = 1;
+}
+
+message RelayRequest {
+  repeated string keys = 1;
+}
+
+message RelayOutput {
+  string kid = 1 [(go.field) = {name: "KID"}];
+  int64 index = 2;
 }

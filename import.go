@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/api"
 )
 
@@ -37,4 +38,26 @@ func (s *service) KeyImport(ctx context.Context, req *KeyImportRequest) (*KeyImp
 	return &KeyImportResponse{
 		KID: key.ID.String(),
 	}, nil
+}
+
+func (s *service) importID(id keys.ID) error {
+	// Check if key already exists and skip if so.
+	key, err := s.vault.Keyring().Key(id)
+	if err != nil {
+		return err
+	}
+	if key != nil {
+		return nil
+	}
+	vk := api.NewKey(id)
+	now := s.clock.NowMillis()
+	vk.CreatedAt = now
+	vk.UpdatedAt = now
+	if err := s.vault.Keyring().Set(vk); err != nil {
+		return err
+	}
+	if err := s.scs.Index(id); err != nil {
+		return err
+	}
+	return nil
 }

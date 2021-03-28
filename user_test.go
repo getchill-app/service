@@ -9,7 +9,7 @@ import (
 )
 
 func TestUserAddGithub(t *testing.T) {
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	testAuthSetup(t, service)

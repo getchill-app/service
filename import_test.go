@@ -11,7 +11,7 @@ import (
 
 func TestKeyImport(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
@@ -70,7 +70,7 @@ func TestKeyImportSaltpack(t *testing.T) {
 	dtMkQg08U1C4RtH PMpMj1RyNz9CyBF dNS9qrctSt0r.
 	END EDX25519 KEY MESSAGE.`
 
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()

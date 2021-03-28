@@ -29,10 +29,13 @@ type service struct {
 	users  *users.Users
 	clock  tsutil.Clock
 
-	unlockMtx     sync.Mutex
+	unlockMtx sync.Mutex
+
 	checkMtx      sync.Mutex
 	checking      bool
 	checkCancelFn func()
+
+	relay *relay
 }
 
 func newService(
@@ -60,11 +63,11 @@ func newService(
 		return nil, err
 	}
 	vclient.SetClock(clock)
-	vlt, err := vault.New(path, auth, vault.WithClient(vclient), vault.WithClock(clock))
+	vault, err := vault.New(path, auth, vault.WithClient(vclient), vault.WithClock(clock))
 	if err != nil {
 		return nil, err
 	}
-	vlt.SetFIDO2Plugin(fido2Plugin)
+	vault.SetFIDO2Plugin(fido2Plugin)
 
 	client, err := client.New(env.Server())
 	if err != nil {
@@ -77,6 +80,8 @@ func newService(
 	scs := keys.NewSigchains(db)
 	usrs := users.New(db, scs, users.HTTPClient(client.HTTPClient()), users.Clock(clock))
 
+	relay := newRelay()
+
 	return &service{
 		authIr:        authIr,
 		build:         build,
@@ -85,7 +90,8 @@ func newService(
 		users:         usrs,
 		db:            db,
 		client:        client,
-		vault:         vlt,
+		vault:         vault,
+		relay:         relay,
 		clock:         clock,
 		checkCancelFn: func() {},
 	}, nil

@@ -8,7 +8,7 @@ import (
 )
 
 func TestAuthUnlock(t *testing.T) {
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
@@ -38,7 +38,7 @@ func TestAuthUnlock(t *testing.T) {
 }
 
 func TestAuthUnlockMultipleClients(t *testing.T) {
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()

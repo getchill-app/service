@@ -27,6 +27,7 @@ func newAuthInterceptor() *authInterceptor {
 		"/service.RPC/AuthSetup",
 		"/service.RPC/AuthUnlock",
 		"/service.RPC/AuthLock",
+		"/service.RPC/Status",
 	)
 
 	return &authInterceptor{

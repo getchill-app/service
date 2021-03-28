@@ -11,6 +11,7 @@ import (
 	"github.com/keys-pub/keys-ext/http/api"
 	"github.com/keys-pub/keys-ext/http/client"
 	"github.com/keys-pub/keys/user"
+	"github.com/keys-pub/keys/user/services"
 	"github.com/keys-pub/keys/user/validate"
 	"github.com/keys-pub/keys/users"
 	"github.com/pkg/errors"
@@ -387,3 +388,57 @@ const userCheckExpire = time.Hour * 24
 // userCheckExpire is how long we wait between checks if not ok.
 // TODO: Make configurable
 const userCheckFailureExpire = time.Hour * 4
+
+func (s *service) updateUser(ctx context.Context, kid keys.ID, allowProxyCache bool) (*user.Result, error) {
+	logger.Infof("Update user %s", kid)
+
+	// TODO: Only get new sigchain entries.
+	resp, err := s.client.Sigchain(ctx, kid)
+	if err != nil {
+		return nil, err
+	}
+	if resp != nil {
+		// TODO: Check that our existing statements haven't changed or disappeared
+		logger.Infof("Received sigchain %s, len=%d", kid, len(resp.Statements))
+
+		sc := keys.NewSigchain(kid)
+		if err := sc.AddAll(resp.Statements); err != nil {
+			return nil, err
+		}
+		if err := s.scs.Save(sc); err != nil {
+			return nil, err
+		}
+	} else {
+		logger.Infof("No sigchain for %s", kid)
+	}
+
+	if err := s.scs.Index(kid); err != nil {
+		return nil, err
+	}
+
+	service := func(usr *user.User) services.Service {
+		switch usr.Service {
+		case "twitter":
+			if allowProxyCache {
+				return services.KeysPub
+			}
+			return services.Proxy
+		}
+		return nil
+	}
+
+	res, err := s.users.Update(ctx, kid, users.UseService(service))
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func twitterProxy(usr *user.User) services.Service {
+	switch usr.Service {
+	case "twitter":
+		return services.Proxy
+	}
+	return nil
+}

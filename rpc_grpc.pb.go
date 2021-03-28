@@ -22,18 +22,44 @@ type RPCClient interface {
 	AuthSetup(ctx context.Context, in *AuthSetupRequest, opts ...grpc.CallOption) (*AuthSetupResponse, error)
 	AuthUnlock(ctx context.Context, in *AuthUnlockRequest, opts ...grpc.CallOption) (*AuthUnlockResponse, error)
 	AuthLock(ctx context.Context, in *AuthLockRequest, opts ...grpc.CallOption) (*AuthLockResponse, error)
-	RuntimeStatus(ctx context.Context, in *RuntimeStatusRequest, opts ...grpc.CallOption) (*RuntimeStatusResponse, error)
+	AuthReset(ctx context.Context, in *AuthResetRequest, opts ...grpc.CallOption) (*AuthResetResponse, error)
+	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	KeyGenerate(ctx context.Context, in *KeyGenerateRequest, opts ...grpc.CallOption) (*KeyGenerateResponse, error)
 	Keys(ctx context.Context, in *KeysRequest, opts ...grpc.CallOption) (*KeysResponse, error)
 	Key(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*KeyResponse, error)
 	KeyImport(ctx context.Context, in *KeyImportRequest, opts ...grpc.CallOption) (*KeyImportResponse, error)
 	KeyExport(ctx context.Context, in *KeyExportRequest, opts ...grpc.CallOption) (*KeyExportResponse, error)
 	KeyRemove(ctx context.Context, in *KeyRemoveRequest, opts ...grpc.CallOption) (*KeyRemoveResponse, error)
+	KeySearch(ctx context.Context, in *KeySearchRequest, opts ...grpc.CallOption) (*KeySearchResponse, error)
 	User(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	UserSearch(ctx context.Context, in *UserSearchRequest, opts ...grpc.CallOption) (*UserSearchResponse, error)
 	UserService(ctx context.Context, in *UserServiceRequest, opts ...grpc.CallOption) (*UserServiceResponse, error)
 	UserSign(ctx context.Context, in *UserSignRequest, opts ...grpc.CallOption) (*UserSignResponse, error)
 	UserAdd(ctx context.Context, in *UserAddRequest, opts ...grpc.CallOption) (*UserAddResponse, error)
+	Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error)
+	RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error)
+	Pull(ctx context.Context, in *PullRequest, opts ...grpc.CallOption) (*PullResponse, error)
+	Sigchain(ctx context.Context, in *SigchainRequest, opts ...grpc.CallOption) (*SigchainResponse, error)
+	Statement(ctx context.Context, in *StatementRequest, opts ...grpc.CallOption) (*StatementResponse, error)
+	StatementCreate(ctx context.Context, in *StatementCreateRequest, opts ...grpc.CallOption) (*StatementCreateResponse, error)
+	StatementRevoke(ctx context.Context, in *StatementRevokeRequest, opts ...grpc.CallOption) (*StatementRevokeResponse, error)
+	// Auth (edit)
+	AuthProvision(ctx context.Context, in *AuthProvisionRequest, opts ...grpc.CallOption) (*AuthProvisionResponse, error)
+	AuthDeprovision(ctx context.Context, in *AuthDeprovisionRequest, opts ...grpc.CallOption) (*AuthDeprovisionResponse, error)
+	AuthProvisions(ctx context.Context, in *AuthProvisionsRequest, opts ...grpc.CallOption) (*AuthProvisionsResponse, error)
+	AuthPasswordChange(ctx context.Context, in *AuthPasswordChangeRequest, opts ...grpc.CallOption) (*AuthPasswordChangeResponse, error)
+	// Channels
+	Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error)
+	ChannelCreate(ctx context.Context, in *ChannelCreateRequest, opts ...grpc.CallOption) (*ChannelCreateResponse, error)
+	ChannelInvite(ctx context.Context, in *ChannelInviteRequest, opts ...grpc.CallOption) (*ChannelInviteResponse, error)
+	ChannelLeave(ctx context.Context, in *ChannelLeaveRequest, opts ...grpc.CallOption) (*ChannelLeaveResponse, error)
+	ChannelRead(ctx context.Context, in *ChannelReadRequest, opts ...grpc.CallOption) (*ChannelReadResponse, error)
+	// Messages
+	MessagePrepare(ctx context.Context, in *MessagePrepareRequest, opts ...grpc.CallOption) (*MessagePrepareResponse, error)
+	MessageCreate(ctx context.Context, in *MessageCreateRequest, opts ...grpc.CallOption) (*MessageCreateResponse, error)
+	Messages(ctx context.Context, in *MessagesRequest, opts ...grpc.CallOption) (*MessagesResponse, error)
+	// Relay
+	Relay(ctx context.Context, in *RelayRequest, opts ...grpc.CallOption) (RPC_RelayClient, error)
 }
 
 type rPCClient struct {
@@ -71,9 +97,18 @@ func (c *rPCClient) AuthLock(ctx context.Context, in *AuthLockRequest, opts ...g
 	return out, nil
 }
 
-func (c *rPCClient) RuntimeStatus(ctx context.Context, in *RuntimeStatusRequest, opts ...grpc.CallOption) (*RuntimeStatusResponse, error) {
-	out := new(RuntimeStatusResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/RuntimeStatus", in, out, opts...)
+func (c *rPCClient) AuthReset(ctx context.Context, in *AuthResetRequest, opts ...grpc.CallOption) (*AuthResetResponse, error) {
+	out := new(AuthResetResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AuthReset", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Status", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +169,15 @@ func (c *rPCClient) KeyRemove(ctx context.Context, in *KeyRemoveRequest, opts ..
 	return out, nil
 }
 
+func (c *rPCClient) KeySearch(ctx context.Context, in *KeySearchRequest, opts ...grpc.CallOption) (*KeySearchResponse, error) {
+	out := new(KeySearchResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/KeySearch", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rPCClient) User(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
 	out := new(UserResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/User", in, out, opts...)
@@ -179,6 +223,209 @@ func (c *rPCClient) UserAdd(ctx context.Context, in *UserAddRequest, opts ...grp
 	return out, nil
 }
 
+func (c *rPCClient) Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error) {
+	out := new(RandResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Rand", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error) {
+	out := new(RandPasswordResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/RandPassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Pull(ctx context.Context, in *PullRequest, opts ...grpc.CallOption) (*PullResponse, error) {
+	out := new(PullResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Pull", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Sigchain(ctx context.Context, in *SigchainRequest, opts ...grpc.CallOption) (*SigchainResponse, error) {
+	out := new(SigchainResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Sigchain", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Statement(ctx context.Context, in *StatementRequest, opts ...grpc.CallOption) (*StatementResponse, error) {
+	out := new(StatementResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Statement", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) StatementCreate(ctx context.Context, in *StatementCreateRequest, opts ...grpc.CallOption) (*StatementCreateResponse, error) {
+	out := new(StatementCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/StatementCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) StatementRevoke(ctx context.Context, in *StatementRevokeRequest, opts ...grpc.CallOption) (*StatementRevokeResponse, error) {
+	out := new(StatementRevokeResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/StatementRevoke", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AuthProvision(ctx context.Context, in *AuthProvisionRequest, opts ...grpc.CallOption) (*AuthProvisionResponse, error) {
+	out := new(AuthProvisionResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AuthProvision", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AuthDeprovision(ctx context.Context, in *AuthDeprovisionRequest, opts ...grpc.CallOption) (*AuthDeprovisionResponse, error) {
+	out := new(AuthDeprovisionResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AuthDeprovision", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AuthProvisions(ctx context.Context, in *AuthProvisionsRequest, opts ...grpc.CallOption) (*AuthProvisionsResponse, error) {
+	out := new(AuthProvisionsResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AuthProvisions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AuthPasswordChange(ctx context.Context, in *AuthPasswordChangeRequest, opts ...grpc.CallOption) (*AuthPasswordChangeResponse, error) {
+	out := new(AuthPasswordChangeResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AuthPasswordChange", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error) {
+	out := new(ChannelsResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Channels", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) ChannelCreate(ctx context.Context, in *ChannelCreateRequest, opts ...grpc.CallOption) (*ChannelCreateResponse, error) {
+	out := new(ChannelCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/ChannelCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) ChannelInvite(ctx context.Context, in *ChannelInviteRequest, opts ...grpc.CallOption) (*ChannelInviteResponse, error) {
+	out := new(ChannelInviteResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/ChannelInvite", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) ChannelLeave(ctx context.Context, in *ChannelLeaveRequest, opts ...grpc.CallOption) (*ChannelLeaveResponse, error) {
+	out := new(ChannelLeaveResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/ChannelLeave", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) ChannelRead(ctx context.Context, in *ChannelReadRequest, opts ...grpc.CallOption) (*ChannelReadResponse, error) {
+	out := new(ChannelReadResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/ChannelRead", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) MessagePrepare(ctx context.Context, in *MessagePrepareRequest, opts ...grpc.CallOption) (*MessagePrepareResponse, error) {
+	out := new(MessagePrepareResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/MessagePrepare", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) MessageCreate(ctx context.Context, in *MessageCreateRequest, opts ...grpc.CallOption) (*MessageCreateResponse, error) {
+	out := new(MessageCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/MessageCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Messages(ctx context.Context, in *MessagesRequest, opts ...grpc.CallOption) (*MessagesResponse, error) {
+	out := new(MessagesResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Messages", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Relay(ctx context.Context, in *RelayRequest, opts ...grpc.CallOption) (RPC_RelayClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_RPC_serviceDesc.Streams[0], "/service.RPC/Relay", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &rPCRelayClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RPC_RelayClient interface {
+	Recv() (*RelayOutput, error)
+	grpc.ClientStream
+}
+
+type rPCRelayClient struct {
+	grpc.ClientStream
+}
+
+func (x *rPCRelayClient) Recv() (*RelayOutput, error) {
+	m := new(RelayOutput)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // RPCServer is the server API for RPC service.
 // All implementations must embed UnimplementedRPCServer
 // for forward compatibility
@@ -188,18 +435,44 @@ type RPCServer interface {
 	AuthSetup(context.Context, *AuthSetupRequest) (*AuthSetupResponse, error)
 	AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error)
 	AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error)
-	RuntimeStatus(context.Context, *RuntimeStatusRequest) (*RuntimeStatusResponse, error)
+	AuthReset(context.Context, *AuthResetRequest) (*AuthResetResponse, error)
+	Status(context.Context, *StatusRequest) (*StatusResponse, error)
 	KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error)
 	Keys(context.Context, *KeysRequest) (*KeysResponse, error)
 	Key(context.Context, *KeyRequest) (*KeyResponse, error)
 	KeyImport(context.Context, *KeyImportRequest) (*KeyImportResponse, error)
 	KeyExport(context.Context, *KeyExportRequest) (*KeyExportResponse, error)
 	KeyRemove(context.Context, *KeyRemoveRequest) (*KeyRemoveResponse, error)
+	KeySearch(context.Context, *KeySearchRequest) (*KeySearchResponse, error)
 	User(context.Context, *UserRequest) (*UserResponse, error)
 	UserSearch(context.Context, *UserSearchRequest) (*UserSearchResponse, error)
 	UserService(context.Context, *UserServiceRequest) (*UserServiceResponse, error)
 	UserSign(context.Context, *UserSignRequest) (*UserSignResponse, error)
 	UserAdd(context.Context, *UserAddRequest) (*UserAddResponse, error)
+	Rand(context.Context, *RandRequest) (*RandResponse, error)
+	RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error)
+	Pull(context.Context, *PullRequest) (*PullResponse, error)
+	Sigchain(context.Context, *SigchainRequest) (*SigchainResponse, error)
+	Statement(context.Context, *StatementRequest) (*StatementResponse, error)
+	StatementCreate(context.Context, *StatementCreateRequest) (*StatementCreateResponse, error)
+	StatementRevoke(context.Context, *StatementRevokeRequest) (*StatementRevokeResponse, error)
+	// Auth (edit)
+	AuthProvision(context.Context, *AuthProvisionRequest) (*AuthProvisionResponse, error)
+	AuthDeprovision(context.Context, *AuthDeprovisionRequest) (*AuthDeprovisionResponse, error)
+	AuthProvisions(context.Context, *AuthProvisionsRequest) (*AuthProvisionsResponse, error)
+	AuthPasswordChange(context.Context, *AuthPasswordChangeRequest) (*AuthPasswordChangeResponse, error)
+	// Channels
+	Channels(context.Context, *ChannelsRequest) (*ChannelsResponse, error)
+	ChannelCreate(context.Context, *ChannelCreateRequest) (*ChannelCreateResponse, error)
+	ChannelInvite(context.Context, *ChannelInviteRequest) (*ChannelInviteResponse, error)
+	ChannelLeave(context.Context, *ChannelLeaveRequest) (*ChannelLeaveResponse, error)
+	ChannelRead(context.Context, *ChannelReadRequest) (*ChannelReadResponse, error)
+	// Messages
+	MessagePrepare(context.Context, *MessagePrepareRequest) (*MessagePrepareResponse, error)
+	MessageCreate(context.Context, *MessageCreateRequest) (*MessageCreateResponse, error)
+	Messages(context.Context, *MessagesRequest) (*MessagesResponse, error)
+	// Relay
+	Relay(*RelayRequest, RPC_RelayServer) error
 	mustEmbedUnimplementedRPCServer()
 }
 
@@ -216,8 +489,11 @@ func (*UnimplementedRPCServer) AuthUnlock(context.Context, *AuthUnlockRequest) (
 func (*UnimplementedRPCServer) AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthLock not implemented")
 }
-func (*UnimplementedRPCServer) RuntimeStatus(context.Context, *RuntimeStatusRequest) (*RuntimeStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RuntimeStatus not implemented")
+func (*UnimplementedRPCServer) AuthReset(context.Context, *AuthResetRequest) (*AuthResetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthReset not implemented")
+}
+func (*UnimplementedRPCServer) Status(context.Context, *StatusRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
 func (*UnimplementedRPCServer) KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeyGenerate not implemented")
@@ -237,6 +513,9 @@ func (*UnimplementedRPCServer) KeyExport(context.Context, *KeyExportRequest) (*K
 func (*UnimplementedRPCServer) KeyRemove(context.Context, *KeyRemoveRequest) (*KeyRemoveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeyRemove not implemented")
 }
+func (*UnimplementedRPCServer) KeySearch(context.Context, *KeySearchRequest) (*KeySearchResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KeySearch not implemented")
+}
 func (*UnimplementedRPCServer) User(context.Context, *UserRequest) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method User not implemented")
 }
@@ -251,6 +530,66 @@ func (*UnimplementedRPCServer) UserSign(context.Context, *UserSignRequest) (*Use
 }
 func (*UnimplementedRPCServer) UserAdd(context.Context, *UserAddRequest) (*UserAddResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserAdd not implemented")
+}
+func (*UnimplementedRPCServer) Rand(context.Context, *RandRequest) (*RandResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rand not implemented")
+}
+func (*UnimplementedRPCServer) RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RandPassword not implemented")
+}
+func (*UnimplementedRPCServer) Pull(context.Context, *PullRequest) (*PullResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Pull not implemented")
+}
+func (*UnimplementedRPCServer) Sigchain(context.Context, *SigchainRequest) (*SigchainResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Sigchain not implemented")
+}
+func (*UnimplementedRPCServer) Statement(context.Context, *StatementRequest) (*StatementResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Statement not implemented")
+}
+func (*UnimplementedRPCServer) StatementCreate(context.Context, *StatementCreateRequest) (*StatementCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StatementCreate not implemented")
+}
+func (*UnimplementedRPCServer) StatementRevoke(context.Context, *StatementRevokeRequest) (*StatementRevokeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StatementRevoke not implemented")
+}
+func (*UnimplementedRPCServer) AuthProvision(context.Context, *AuthProvisionRequest) (*AuthProvisionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthProvision not implemented")
+}
+func (*UnimplementedRPCServer) AuthDeprovision(context.Context, *AuthDeprovisionRequest) (*AuthDeprovisionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthDeprovision not implemented")
+}
+func (*UnimplementedRPCServer) AuthProvisions(context.Context, *AuthProvisionsRequest) (*AuthProvisionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthProvisions not implemented")
+}
+func (*UnimplementedRPCServer) AuthPasswordChange(context.Context, *AuthPasswordChangeRequest) (*AuthPasswordChangeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthPasswordChange not implemented")
+}
+func (*UnimplementedRPCServer) Channels(context.Context, *ChannelsRequest) (*ChannelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Channels not implemented")
+}
+func (*UnimplementedRPCServer) ChannelCreate(context.Context, *ChannelCreateRequest) (*ChannelCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChannelCreate not implemented")
+}
+func (*UnimplementedRPCServer) ChannelInvite(context.Context, *ChannelInviteRequest) (*ChannelInviteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChannelInvite not implemented")
+}
+func (*UnimplementedRPCServer) ChannelLeave(context.Context, *ChannelLeaveRequest) (*ChannelLeaveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChannelLeave not implemented")
+}
+func (*UnimplementedRPCServer) ChannelRead(context.Context, *ChannelReadRequest) (*ChannelReadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChannelRead not implemented")
+}
+func (*UnimplementedRPCServer) MessagePrepare(context.Context, *MessagePrepareRequest) (*MessagePrepareResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MessagePrepare not implemented")
+}
+func (*UnimplementedRPCServer) MessageCreate(context.Context, *MessageCreateRequest) (*MessageCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MessageCreate not implemented")
+}
+func (*UnimplementedRPCServer) Messages(context.Context, *MessagesRequest) (*MessagesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Messages not implemented")
+}
+func (*UnimplementedRPCServer) Relay(*RelayRequest, RPC_RelayServer) error {
+	return status.Errorf(codes.Unimplemented, "method Relay not implemented")
 }
 func (*UnimplementedRPCServer) mustEmbedUnimplementedRPCServer() {}
 
@@ -312,20 +651,38 @@ func _RPC_AuthLock_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RPC_RuntimeStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RuntimeStatusRequest)
+func _RPC_AuthReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthResetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RPCServer).RuntimeStatus(ctx, in)
+		return srv.(RPCServer).AuthReset(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/service.RPC/RuntimeStatus",
+		FullMethod: "/service.RPC/AuthReset",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).RuntimeStatus(ctx, req.(*RuntimeStatusRequest))
+		return srv.(RPCServer).AuthReset(ctx, req.(*AuthResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Status(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Status",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Status(ctx, req.(*StatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -438,6 +795,24 @@ func _RPC_KeyRemove_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RPC_KeySearch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KeySearchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).KeySearch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/KeySearch",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).KeySearch(ctx, req.(*KeySearchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RPC_User_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UserRequest)
 	if err := dec(in); err != nil {
@@ -528,6 +903,369 @@ func _RPC_UserAdd_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RPC_Rand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RandRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Rand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Rand",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Rand(ctx, req.(*RandRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_RandPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RandPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).RandPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/RandPassword",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).RandPassword(ctx, req.(*RandPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Pull_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PullRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Pull(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Pull",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Pull(ctx, req.(*PullRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Sigchain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SigchainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Sigchain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Sigchain",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Sigchain(ctx, req.(*SigchainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Statement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Statement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Statement",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Statement(ctx, req.(*StatementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_StatementCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatementCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).StatementCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/StatementCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).StatementCreate(ctx, req.(*StatementCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_StatementRevoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatementRevokeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).StatementRevoke(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/StatementRevoke",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).StatementRevoke(ctx, req.(*StatementRevokeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AuthProvision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthProvisionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AuthProvision(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AuthProvision",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AuthProvision(ctx, req.(*AuthProvisionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AuthDeprovision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthDeprovisionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AuthDeprovision(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AuthDeprovision",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AuthDeprovision(ctx, req.(*AuthDeprovisionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AuthProvisions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthProvisionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AuthProvisions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AuthProvisions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AuthProvisions(ctx, req.(*AuthProvisionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AuthPasswordChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthPasswordChangeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AuthPasswordChange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AuthPasswordChange",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AuthPasswordChange(ctx, req.(*AuthPasswordChangeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Channels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Channels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Channels",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Channels(ctx, req.(*ChannelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_ChannelCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).ChannelCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/ChannelCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).ChannelCreate(ctx, req.(*ChannelCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_ChannelInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelInviteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).ChannelInvite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/ChannelInvite",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).ChannelInvite(ctx, req.(*ChannelInviteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_ChannelLeave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelLeaveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).ChannelLeave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/ChannelLeave",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).ChannelLeave(ctx, req.(*ChannelLeaveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_ChannelRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).ChannelRead(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/ChannelRead",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).ChannelRead(ctx, req.(*ChannelReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_MessagePrepare_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MessagePrepareRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).MessagePrepare(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/MessagePrepare",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).MessagePrepare(ctx, req.(*MessagePrepareRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_MessageCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MessageCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).MessageCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/MessageCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).MessageCreate(ctx, req.(*MessageCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Messages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Messages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Messages",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Messages(ctx, req.(*MessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Relay_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RelayRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RPCServer).Relay(m, &rPCRelayServer{stream})
+}
+
+type RPC_RelayServer interface {
+	Send(*RelayOutput) error
+	grpc.ServerStream
+}
+
+type rPCRelayServer struct {
+	grpc.ServerStream
+}
+
+func (x *rPCRelayServer) Send(m *RelayOutput) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _RPC_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "service.RPC",
 	HandlerType: (*RPCServer)(nil),
@@ -545,8 +1283,12 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_AuthLock_Handler,
 		},
 		{
-			MethodName: "RuntimeStatus",
-			Handler:    _RPC_RuntimeStatus_Handler,
+			MethodName: "AuthReset",
+			Handler:    _RPC_AuthReset_Handler,
+		},
+		{
+			MethodName: "Status",
+			Handler:    _RPC_Status_Handler,
 		},
 		{
 			MethodName: "KeyGenerate",
@@ -573,6 +1315,10 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_KeyRemove_Handler,
 		},
 		{
+			MethodName: "KeySearch",
+			Handler:    _RPC_KeySearch_Handler,
+		},
+		{
 			MethodName: "User",
 			Handler:    _RPC_User_Handler,
 		},
@@ -592,7 +1338,89 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			MethodName: "UserAdd",
 			Handler:    _RPC_UserAdd_Handler,
 		},
+		{
+			MethodName: "Rand",
+			Handler:    _RPC_Rand_Handler,
+		},
+		{
+			MethodName: "RandPassword",
+			Handler:    _RPC_RandPassword_Handler,
+		},
+		{
+			MethodName: "Pull",
+			Handler:    _RPC_Pull_Handler,
+		},
+		{
+			MethodName: "Sigchain",
+			Handler:    _RPC_Sigchain_Handler,
+		},
+		{
+			MethodName: "Statement",
+			Handler:    _RPC_Statement_Handler,
+		},
+		{
+			MethodName: "StatementCreate",
+			Handler:    _RPC_StatementCreate_Handler,
+		},
+		{
+			MethodName: "StatementRevoke",
+			Handler:    _RPC_StatementRevoke_Handler,
+		},
+		{
+			MethodName: "AuthProvision",
+			Handler:    _RPC_AuthProvision_Handler,
+		},
+		{
+			MethodName: "AuthDeprovision",
+			Handler:    _RPC_AuthDeprovision_Handler,
+		},
+		{
+			MethodName: "AuthProvisions",
+			Handler:    _RPC_AuthProvisions_Handler,
+		},
+		{
+			MethodName: "AuthPasswordChange",
+			Handler:    _RPC_AuthPasswordChange_Handler,
+		},
+		{
+			MethodName: "Channels",
+			Handler:    _RPC_Channels_Handler,
+		},
+		{
+			MethodName: "ChannelCreate",
+			Handler:    _RPC_ChannelCreate_Handler,
+		},
+		{
+			MethodName: "ChannelInvite",
+			Handler:    _RPC_ChannelInvite_Handler,
+		},
+		{
+			MethodName: "ChannelLeave",
+			Handler:    _RPC_ChannelLeave_Handler,
+		},
+		{
+			MethodName: "ChannelRead",
+			Handler:    _RPC_ChannelRead_Handler,
+		},
+		{
+			MethodName: "MessagePrepare",
+			Handler:    _RPC_MessagePrepare_Handler,
+		},
+		{
+			MethodName: "MessageCreate",
+			Handler:    _RPC_MessageCreate_Handler,
+		},
+		{
+			MethodName: "Messages",
+			Handler:    _RPC_Messages_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Relay",
+			Handler:       _RPC_Relay_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "rpc.proto",
 }

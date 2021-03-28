@@ -12,7 +12,7 @@ import (
 
 func TestKeyExport(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
@@ -73,7 +73,7 @@ func TestKeyExport(t *testing.T) {
 
 func TestKeySSHExport(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()

@@ -96,6 +96,14 @@ func (s *service) KeyRemove(ctx context.Context, req *KeyRemoveRequest) (*KeyRem
 	if err != nil {
 		return nil, err
 	}
+	key, err := s.vault.Keyring().Key(kid)
+	if err != nil {
+		return nil, err
+	}
+	if key == nil {
+		return nil, keys.NewErrNotFound(kid.String())
+	}
+
 	if err := s.vault.Keyring().Remove(kid); err != nil {
 		return nil, err
 	}
@@ -140,5 +148,28 @@ func (s *service) KeyGenerate(ctx context.Context, req *KeyGenerateRequest) (*Ke
 
 	return &KeyGenerateResponse{
 		KID: vk.ID.String(),
+	}, nil
+}
+
+// KeySearch (RPC) ...
+func (s *service) KeySearch(ctx context.Context, req *KeySearchRequest) (*KeySearchResponse, error) {
+	res, err := s.searchUsersRemote(ctx, req.Query, 0)
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]*Key, 0, len(res))
+	for _, u := range res {
+		kid := u.KID
+		typ := string(kid.Type())
+		key := &Key{
+			ID:   kid.String(),
+			User: apiUserToRPC(u),
+			Type: typ,
+		}
+		keys = append(keys, key)
+	}
+
+	return &KeySearchResponse{
+		Keys: keys,
 	}, nil
 }

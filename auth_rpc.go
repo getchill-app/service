@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"os"
 
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/sqlcipher"
+	"github.com/keys-pub/keys/tsutil"
 	"github.com/keys-pub/vault"
+	"github.com/keys-pub/vault/auth"
 	"github.com/pkg/errors"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -36,7 +39,7 @@ func (s *service) AuthSetup(ctx context.Context, req *AuthSetupRequest) (*AuthSe
 	defer s.unlockMtx.Unlock()
 
 	logger.Infof("Auth setup...")
-	if !s.vault.NeedsSetup() {
+	if s.vault.Status() != vault.SetupNeeded {
 		return nil, errors.Errorf("already setup")
 	}
 
@@ -113,7 +116,7 @@ func (s *service) openDB(ctx context.Context, mk *[32]byte) error {
 	if err != nil {
 		return err
 	}
-	dbk := keys.Bytes32(keys.HKDFSHA256(mk[:], 32, nil, []byte("keys.pub/service.db")))
+	dbk := keys.Bytes32(keys.HKDFSHA256(mk[:], 32, nil, []byte("getchill.app/service.db")))
 	if err := s.db.OpenAtPath(ctx, path, dbk); err != nil {
 		if err == sqlcipher.ErrAlreadyOpen {
 			return nil
@@ -135,4 +138,97 @@ func (s *service) AuthLock(ctx context.Context, req *AuthLockRequest) (*AuthLock
 		return nil, err
 	}
 	return &AuthLockResponse{}, nil
+}
+
+func (s *service) AuthReset(ctx context.Context, req *AuthResetRequest) (*AuthResetResponse, error) {
+	if s.vault.Status() != vault.Locked {
+		return nil, errors.Wrapf(errors.Errorf("auth is not locked"), "failed to reset")
+	}
+
+	if req.AppName != s.env.AppName() {
+		return nil, errors.Wrapf(errors.Errorf("invalid app name"), "failed to reset")
+	}
+
+	if err := s.vault.Reset(); err != nil {
+		return nil, err
+	}
+
+	path, err := s.env.AppPath("service.db", false)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.RemoveAll(path); err != nil {
+		return nil, err
+	}
+
+	return &AuthResetResponse{}, nil
+}
+
+// AuthProvision (RPC) ...
+func (s *service) AuthProvision(ctx context.Context, req *AuthProvisionRequest) (*AuthProvisionResponse, error) {
+	var auth *auth.Auth
+	var err error
+	switch req.Type {
+	case PasswordAuth:
+		auth, err = s.vault.RegisterPassword(req.Secret)
+	default:
+		return nil, errors.Errorf("unsupported provision type")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &AuthProvisionResponse{
+		Provision: authToRPC(auth),
+	}, nil
+}
+
+// AuthDeprovision (RPC) ...
+func (s *service) AuthDeprovision(ctx context.Context, req *AuthDeprovisionRequest) (*AuthDeprovisionResponse, error) {
+	// TODO: If FIDO2 resident key and supports credMgmt remove from the device also?
+	return nil, errors.Errorf("no implemented")
+}
+
+// AuthProvisions (RPC) ...
+func (s *service) AuthProvisions(ctx context.Context, req *AuthProvisionsRequest) (*AuthProvisionsResponse, error) {
+	auths, err := s.vault.Auth().List()
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]*AuthProvision, 0, len(auths))
+	for _, auth := range auths {
+		out = append(out, authToRPC(auth))
+	}
+
+	return &AuthProvisionsResponse{
+		Provisions: out,
+	}, nil
+}
+
+// AuthPasswordChange (RPC) ...
+func (s *service) AuthPasswordChange(ctx context.Context, req *AuthPasswordChangeRequest) (*AuthPasswordChangeResponse, error) {
+	return nil, errors.Errorf("no implemented")
+}
+
+func authToRPC(auth *auth.Auth) *AuthProvision {
+	return &AuthProvision{
+		ID:        auth.ID,
+		Type:      authTypeToRPC(auth.Type),
+		AAGUID:    auth.AAGUID,
+		NoPin:     auth.NoPin,
+		CreatedAt: tsutil.Millis(auth.CreatedAt),
+	}
+}
+
+func authTypeToRPC(t auth.Type) AuthType {
+	switch t {
+	case auth.PasswordType:
+		return PasswordAuth
+	case auth.PaperKeyType:
+		return PaperKeyAuth
+	case auth.FIDO2HMACSecretType:
+		return FIDO2HMACSecretAuth
+	default:
+		return UnknownAuth
+	}
 }

@@ -46,19 +46,19 @@ func testFire(t *testing.T, clock tsutil.Clock) server.Fire {
 	return fi
 }
 
-type testEnv struct {
+type testServerEnv struct {
 	clock  tsutil.Clock
 	fi     server.Fire
 	client http.Client
 	users  *users.Users
 }
 
-func newTestEnv(t *testing.T) *testEnv {
+func newTestServerEnv(t *testing.T) *testServerEnv {
 	clock := tsutil.NewTestClock()
 	fi := testFire(t, clock)
 	client := http.NewClient()
 	usrs := users.New(fi, keys.NewSigchains(fi), users.Client(client), users.Clock(clock))
-	return &testEnv{
+	return &testServerEnv{
 		clock:  clock,
 		fi:     fi,
 		client: client,
@@ -66,18 +66,18 @@ func newTestEnv(t *testing.T) *testEnv {
 	}
 }
 
-func newTestService(t *testing.T, tenv *testEnv) (*service, CloseFn) {
-	serverEnv := newTestServerEnv(t, tenv)
+func newTestService(t *testing.T, serverEnv *testServerEnv) (*service, CloseFn) {
+	httpServerEnv := newTestHTTPServerEnv(t, serverEnv)
 	appName := "KeysTest-" + randName()
 
-	env, closeFn := newEnv(t, appName, serverEnv.url)
+	env, closeFn := newEnv(t, appName, httpServerEnv.url)
 	auth := newAuthInterceptor()
 
-	svc, err := newService(env, Build{Version: "1.2.3", Commit: "deadbeef"}, auth, nil, tenv.clock)
+	svc, err := newService(env, Build{Version: "1.2.3", Commit: "deadbeef"}, auth, nil, serverEnv.clock)
 	require.NoError(t, err)
 
 	closeServiceFn := func() {
-		serverEnv.closeFn()
+		httpServerEnv.closeFn()
 		svc.Close()
 		closeFn()
 	}
@@ -115,12 +115,12 @@ func testAuthUnlock(t *testing.T, service *service) {
 	require.NoError(t, err)
 }
 
-type serverEnv struct {
+type testHTTPServerEnv struct {
 	url     string
 	closeFn func()
 }
 
-func newTestServerEnv(t *testing.T, env *testEnv) *serverEnv {
+func newTestHTTPServerEnv(t *testing.T, env *testServerEnv) *testHTTPServerEnv {
 	rds := server.NewRedisTest(env.clock)
 	srv := server.New(env.fi, rds, env.client, env.clock, server.NewLogger(server.NoLevel))
 	srv.SetClock(env.clock)
@@ -135,7 +135,7 @@ func newTestServerEnv(t *testing.T, env *testEnv) *serverEnv {
 	closeFn := func() {
 		testServer.Close()
 	}
-	return &serverEnv{
+	return &testHTTPServerEnv{
 		url:     srv.URL,
 		closeFn: closeFn,
 	}
@@ -144,7 +144,7 @@ func newTestServerEnv(t *testing.T, env *testEnv) *serverEnv {
 func TestServiceCheck(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
 	// vault.SetLogger(NewLogger(DebugLevel))
-	env := newTestEnv(t)
+	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 
