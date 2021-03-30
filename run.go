@@ -16,9 +16,7 @@ import (
 	ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/auth/fido2"
-	"github.com/keys-pub/keys-ext/http/client"
 	"github.com/keys-pub/keys/tsutil"
-	"github.com/keys-pub/vault"
 	"github.com/mercari/go-grpc-interceptor/panichandler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -83,10 +81,7 @@ func Run(build Build) {
 	// TODO: Include package name in logging
 
 	lg, lgi := setupLogging(logLevel, *args.logPath)
-	SetLogger(lg)
-	client.SetLogger(newPackageLogger(lg, "http/client"))
-	keys.SetLogger(newPackageLogger(lg, "keys"))
-	vault.SetLogger(newPackageLogger(lg, "vault"))
+	setupLogPackages(lg)
 
 	logger.Debugf("Running %v", os.Args)
 

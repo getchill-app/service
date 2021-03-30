@@ -6,6 +6,7 @@ import (
 
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/sqlcipher"
+	"github.com/keys-pub/keys/api"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/keys-pub/vault"
 	"github.com/keys-pub/vault/auth"
@@ -101,6 +102,10 @@ func (s *service) AuthUnlock(ctx context.Context, req *AuthUnlockRequest) (*Auth
 		return nil, err
 	}
 
+	if err := s.setupAccount(); err != nil {
+		return nil, err
+	}
+
 	logger.Infof("Unlocked (%s)", req.Type)
 	token := s.authIr.registerToken(req.Client)
 
@@ -109,6 +114,24 @@ func (s *service) AuthUnlock(ctx context.Context, req *AuthUnlockRequest) (*Auth
 	return &AuthUnlockResponse{
 		AuthToken: token,
 	}, nil
+}
+
+func (s *service) setupAccount() error {
+	// TODO: Implement
+	currentUser, err := s.currentUserID()
+	if err != nil {
+		return err
+	}
+	if currentUser == "" {
+		user := api.NewKey(keys.GenerateEdX25519Key()).Created(s.clock.NowMillis())
+		if err := s.vault.Keyring().Set(user); err != nil {
+			return err
+		}
+		if err := s.setCurrentUser(user.ID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *service) openDB(ctx context.Context, mk *[32]byte) error {

@@ -68,7 +68,7 @@ func (s *service) tryCheck(ctx context.Context) {
 }
 
 func (s *service) edxPublicKeys() ([]keys.ID, error) {
-	pks, err := s.vault.Keyring().KeysByType(string(keys.EdX25519))
+	pks, err := s.vault.Keyring().KeysWithType(string(keys.EdX25519))
 	if err != nil {
 		return nil, err
 	}

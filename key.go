@@ -55,7 +55,7 @@ func (s *service) keyToRPC(ctx context.Context, key *api.Key, saved bool) (*Key,
 }
 
 func (s *service) key(ctx context.Context, kid keys.ID) (*Key, error) {
-	key, err := s.vault.Keyring().Key(kid)
+	key, err := s.vault.Keyring().Get(kid)
 	if err != nil {
 		return nil, err
 	}
@@ -96,12 +96,8 @@ func (s *service) KeyRemove(ctx context.Context, req *KeyRemoveRequest) (*KeyRem
 	if err != nil {
 		return nil, err
 	}
-	key, err := s.vault.Keyring().Key(kid)
-	if err != nil {
+	if _, err := s.vault.Keyring().Key(kid); err != nil {
 		return nil, err
-	}
-	if key == nil {
-		return nil, keys.NewErrNotFound(kid.String())
 	}
 
 	if err := s.vault.Keyring().Remove(kid); err != nil {

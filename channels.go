@@ -2,18 +2,86 @@ package service
 
 import (
 	"context"
+	"strings"
 
+	"github.com/getchill-app/messaging"
 	"github.com/keys-pub/keys"
-	"github.com/keys-pub/keys-ext/http/api"
 	"github.com/pkg/errors"
 )
 
 func (s *service) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
-	return nil, errors.Errorf("not implemented")
+	status, err := s.messenger.ChannelStatuses()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*Channel, 0, len(status))
+	for _, st := range status {
+		out = append(out, channelToRPC(st))
+	}
+	return &ChannelsResponse{
+		Channels: out,
+	}, nil
 }
 
 func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) (*ChannelCreateResponse, error) {
-	return nil, errors.Errorf("not implemented")
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return nil, errors.Errorf("no channel name specified")
+	}
+	if len(name) > 16 {
+		return nil, errors.Errorf("channel name too long (must be < 16)")
+	}
+
+	// Create channel key
+	channelKey := keys.GenerateEdX25519Key()
+
+	logger.Debugf("Adding channel %s", channelKey.ID())
+	reg, err := s.messenger.AddChannel(ctx, channelKey)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.currentUser()
+	if err != nil {
+		return nil, err
+	}
+	logger.Debugf("Current user: %s", user.ID)
+
+	info := &messaging.ChannelInfo{Name: name}
+	msg := messaging.NewMessageForChannelInfo(channelKey.ID(), user.ID, info)
+	logger.Debugf("Sending channel info message...")
+	if err := s.messenger.Send(ctx, msg); err != nil {
+		return nil, err
+	}
+
+	logger.Debugf("Relay...")
+	s.relay.Authorize([]string{reg.Token})
+	s.relay.Send(&RelayOutput{
+		Channel: channelKey.ID().String(),
+	})
+
+	status, err := s.messenger.ChannelStatus(channelKey.ID())
+	if err != nil {
+		return nil, err
+	}
+	logger.Debugf("Channel status: %+v", status)
+
+	return &ChannelCreateResponse{
+		Channel: channelToRPC(status),
+	}, nil
+}
+
+func channelToRPC(status *messaging.ChannelStatus) *Channel {
+	if status == nil {
+		return nil
+	}
+	return &Channel{
+		ID:        status.Channel.String(),
+		Name:      status.Name,
+		Snippet:   status.Snippet,
+		Index:     status.Index,
+		ReadIndex: status.ReadIndex,
+	}
 }
 
 func (s *service) ChannelInvite(ctx context.Context, req *ChannelInviteRequest) (*ChannelInviteResponse, error) {
@@ -25,42 +93,14 @@ func (s *service) ChannelRead(ctx context.Context, req *ChannelReadRequest) (*Ch
 }
 
 func (s *service) ChannelLeave(ctx context.Context, req *ChannelLeaveRequest) (*ChannelLeaveResponse, error) {
-	return nil, errors.Errorf("not implemented")
-}
-
-type channelStatus struct {
-	ID              keys.ID `json:"id,omitempty" msgpack:"id,omitempty"`
-	Name            string  `json:"name,omitempty" msgpack:"name,omitempty"`
-	Description     string  `json:"desc,omitempty" msgpack:"desc,omitempty"`
-	Snippet         string  `json:"snippet,omitempty" msgpack:"snippet,omitempty"`
-	Index           int64   `json:"index,omitempty" msgpack:"index,omitempty"`
-	Timestamp       int64   `json:"ts,omitempty" msgpack:"ts,omitempty"`
-	RemoteTimestamp int64   `json:"rts,omitempty" msgpack:"rts,omitempty"`
-	ReadIndex       int64   `json:"readIndex,omitempty" msgpack:"readIndex,omitempty"`
-}
-
-func (s channelStatus) Info() *api.ChannelInfo {
-	return &api.ChannelInfo{
-		Name:        s.Name,
-		Description: s.Description,
+	channel, err := keys.ParseID(req.Channel)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid channel")
 	}
-}
 
-func (s channelStatus) Channel() *Channel {
-	return &Channel{
-		ID:        s.ID.String(),
-		Name:      s.Name,
-		Snippet:   s.Snippet,
-		UpdatedAt: s.RemoteTimestamp,
-		Index:     s.Index,
-		ReadIndex: s.ReadIndex,
+	if err := s.messenger.LeaveChannel(ctx, channel); err != nil {
+		return nil, err
 	}
-}
 
-func (s *service) channelStatus(ctx context.Context, cid keys.ID) (*channelStatus, error) {
-	return nil, errors.Errorf("not implemented")
-}
-
-func (s *service) updateChannelStatus(ctx context.Context, status *channelStatus) error {
-	return errors.Errorf("not implemented")
+	return &ChannelLeaveResponse{}, nil
 }

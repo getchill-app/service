@@ -4,6 +4,8 @@ go 1.16
 
 require (
 	github.com/alta/protopatch v0.3.3
+	github.com/davecgh/go-spew v1.1.1
+	github.com/getchill-app/messaging v0.0.0-20210328173043-840bde55799b
 	github.com/golang/protobuf v1.5.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/keys-pub/keys v0.1.21-0.20210326211358-fb3db764000f
@@ -14,7 +16,7 @@ require (
 	github.com/keys-pub/keys-ext/sqlcipher v0.0.0-20210327130412-59e9fcfcf22c
 	github.com/keys-pub/keys-ext/ws/api v0.0.0-20210327130412-59e9fcfcf22c
 	github.com/keys-pub/keys-ext/ws/client v0.0.0-20210327130412-59e9fcfcf22c
-	github.com/keys-pub/vault v0.0.0-20210326211528-d0931a530263
+	github.com/keys-pub/vault v0.0.0-20210329171103-35fa769419c1
 	github.com/mercari/go-grpc-interceptor v0.0.0-20180110035004-b8ad3827e82a
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
@@ -24,3 +26,9 @@ require (
 )
 
 replace github.com/keys-pub/vault => ../../keys.pub/vault
+
+replace github.com/getchill-app/messaging => ../messaging
+
+replace github.com/keys-pub/keys-ext/ws/api => ../../keys.pub/keys-ext/ws/api
+
+replace github.com/keys-pub/keys-ext/ws/client => ../../keys.pub/keys-ext/ws/client

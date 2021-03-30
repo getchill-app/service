@@ -10,6 +10,7 @@ import (
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/http/api"
 	"github.com/keys-pub/keys-ext/http/client"
+	kapi "github.com/keys-pub/keys/api"
 	"github.com/keys-pub/keys/user"
 	"github.com/keys-pub/keys/user/services"
 	"github.com/keys-pub/keys/user/validate"
@@ -61,7 +62,7 @@ func (s *service) User(ctx context.Context, req *UserRequest) (*UserResponse, er
 		user = userResultToRPC(res)
 	} else {
 		if !req.Local {
-			resp, err := s.client.User(ctx, kid)
+			resp, err := s.hclient.User(ctx, kid)
 			if err != nil {
 				return nil, err
 			}
@@ -219,7 +220,7 @@ func (s *service) sigchainUserAdd(ctx context.Context, key *keys.EdX25519Key, se
 	}
 
 	if !localOnly {
-		err := s.client.SigchainSave(ctx, st)
+		err := s.hclient.SigchainSave(ctx, st)
 		if err != nil {
 			// TODO: Test this error response
 			var rerr client.Error
@@ -353,7 +354,7 @@ func (s *service) searchUsersLocal(ctx context.Context, query string, limit int)
 func (s *service) searchUsersRemote(ctx context.Context, query string, limit int) ([]*api.User, error) {
 	query = strings.TrimSpace(query)
 	logger.Infof("Search users remote %q", query)
-	resp, err := s.client.UserSearch(ctx, query, limit)
+	resp, err := s.hclient.UserSearch(ctx, query, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +394,7 @@ func (s *service) updateUser(ctx context.Context, kid keys.ID, allowProxyCache b
 	logger.Infof("Update user %s", kid)
 
 	// TODO: Only get new sigchain entries.
-	resp, err := s.client.Sigchain(ctx, kid)
+	resp, err := s.hclient.Sigchain(ctx, kid)
 	if err != nil {
 		return nil, err
 	}
@@ -441,4 +442,27 @@ func twitterProxy(usr *user.User) services.Service {
 		return services.Proxy
 	}
 	return nil
+}
+
+func (s *service) currentUserID() (keys.ID, error) {
+	return s.vault.Config().KID("currentUser")
+}
+
+func (s *service) currentUser() (*kapi.Key, error) {
+	kid, err := s.currentUserID()
+	if err != nil {
+		return nil, err
+	}
+	if kid == "" {
+		return nil, nil
+	}
+	key, err := s.vault.Keyring().Key(kid)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+func (s *service) setCurrentUser(kid keys.ID) error {
+	return s.vault.Config().SetKID("currentUser", kid)
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *service) command(ctx context.Context, cmd string, user string, channel string) (*Message, error) {
+func (s *service) command(ctx context.Context, cmd string, channel string) (*Message, error) {
 	fields := strings.Fields(cmd)
 	if len(fields) == 0 {
 		return nil, errors.Errorf("no command")
@@ -18,7 +18,7 @@ func (s *service) command(ctx context.Context, cmd string, user string, channel 
 
 	switch cmd0 {
 	case "/invite":
-		resp, err := s.ChannelInvite(ctx, &ChannelInviteRequest{Channel: channel, Sender: user, Recipients: args})
+		resp, err := s.ChannelInvite(ctx, &ChannelInviteRequest{Channel: channel, Recipients: args})
 		if err != nil {
 			return nil, err
 		}
@@ -30,7 +30,7 @@ func (s *service) command(ctx context.Context, cmd string, user string, channel 
 		}
 		return nil, nil
 	case "/create":
-		_, err := s.ChannelCreate(ctx, &ChannelCreateRequest{Name: args[0], User: user})
+		_, err := s.ChannelCreate(ctx, &ChannelCreateRequest{Name: args[0]})
 		if err != nil {
 			return nil, err
 		}

@@ -6,12 +6,15 @@ import (
 
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/auth/fido2"
-	"github.com/keys-pub/keys-ext/http/client"
+	hclient "github.com/keys-pub/keys-ext/http/client"
 	"github.com/keys-pub/keys-ext/sqlcipher"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/keys-pub/keys/users"
 	"github.com/keys-pub/vault"
 	"github.com/keys-pub/vault/auth"
+	vclient "github.com/keys-pub/vault/client"
+
+	"github.com/getchill-app/messaging"
 )
 
 type service struct {
@@ -23,11 +26,11 @@ type service struct {
 
 	vault *vault.Vault
 
-	db     *sqlcipher.DB
-	client *client.Client
-	scs    *keys.Sigchains
-	users  *users.Users
-	clock  tsutil.Clock
+	db      *sqlcipher.DB
+	hclient *hclient.Client
+	scs     *keys.Sigchains
+	users   *users.Users
+	clock   tsutil.Clock
 
 	unlockMtx sync.Mutex
 
@@ -35,7 +38,8 @@ type service struct {
 	checking      bool
 	checkCancelFn func()
 
-	relay *relay
+	messenger *messaging.Messenger
+	relay     *relay
 }
 
 func newService(
@@ -58,7 +62,7 @@ func newService(
 	if err != nil {
 		return nil, err
 	}
-	vclient, err := vault.NewClient(env.Server())
+	vclient, err := vclient.New(env.Server())
 	if err != nil {
 		return nil, err
 	}
@@ -69,18 +73,20 @@ func newService(
 	}
 	vault.SetFIDO2Plugin(fido2Plugin)
 
-	client, err := client.New(env.Server())
+	hclient, err := hclient.New(env.Server())
 	if err != nil {
 		return nil, err
 	}
-	client.SetClock(clock)
+	hclient.SetClock(clock)
 
 	db := sqlcipher.New()
 	db.SetClock(clock)
 	scs := keys.NewSigchains(db)
-	usrs := users.New(db, scs, users.HTTPClient(client.HTTPClient()), users.Clock(clock))
+	usrs := users.New(db, scs, users.HTTPClient(hclient.HTTPClient()), users.Clock(clock))
 
 	relay := newRelay()
+
+	messenger := messaging.NewMessenger(vault)
 
 	return &service{
 		authIr:        authIr,
@@ -89,9 +95,10 @@ func newService(
 		scs:           scs,
 		users:         usrs,
 		db:            db,
-		client:        client,
+		hclient:       hclient,
 		vault:         vault,
 		relay:         relay,
+		messenger:     messenger,
 		clock:         clock,
 		checkCancelFn: func() {},
 	}, nil

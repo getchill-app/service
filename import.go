@@ -42,7 +42,7 @@ func (s *service) KeyImport(ctx context.Context, req *KeyImportRequest) (*KeyImp
 
 func (s *service) importID(id keys.ID) error {
 	// Check if key already exists and skip if so.
-	key, err := s.vault.Keyring().Key(id)
+	key, err := s.vault.Keyring().Get(id)
 	if err != nil {
 		return err
 	}

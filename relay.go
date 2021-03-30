@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"sync"
 	"time"
 
 	"github.com/keys-pub/keys-ext/ws/api"
 	wsclient "github.com/keys-pub/keys-ext/ws/client"
+	"github.com/pkg/errors"
 )
 
 type relayClient struct {
@@ -74,14 +76,15 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 	s.relay.Register(client)
 	defer s.relay.Unregister(client)
 
-	// tokens, err := s.relayTokens(ctx, req.User)
-	// if err != nil {
-	// 	return err
-	// }
+	tokens, err := s.relayTokens(ctx)
+	if err != nil {
+		return err
+	}
 
-	// if err := relay.Authorize(tokens); err != nil {
-	// 	return err
-	// }
+	logger.Debugf("Relay tokens: %v", tokens)
+	if err := relay.Authorize(tokens); err != nil {
+		return err
+	}
 
 	// Send empty message to ui after connect and auth
 	if err := srv.Send(&RelayOutput{}); err != nil {
@@ -90,13 +93,15 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 
 	chEvents := make(chan []*api.Event)
 
+	wctx, cancel := context.WithCancel(ctx)
+
 	go func() {
 		for {
 			logger.Infof("Read relay events...")
 			events, err := relay.ReadEvents()
 			if err != nil {
 				logger.Errorf("Error reading events: %v", err)
-				relay.Close()
+				cancel()
 				return
 			}
 			chEvents <- events
@@ -107,8 +112,8 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 
 	for {
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
+		case <-wctx.Done():
+			return errors.Wrapf(wctx.Err(), "relay failed")
 		case <-ticker.C:
 			logger.Debugf("Send ping...")
 			if err := relay.Ping(); err != nil {
@@ -118,26 +123,20 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 			logger.Infof("Got relay events...")
 			for _, event := range events {
 				select {
-				case <-ctx.Done():
-					return ctx.Err()
+				case <-wctx.Done():
+					return errors.Wrapf(wctx.Err(), "relay failed")
 				default:
-					logger.Infof("Relay event %v", event)
+					logger.Debugf("Relay event %v", event)
 					if event.KID != "" {
-						ck, err := s.vault.Keyring().Key(event.KID)
-						if err != nil {
+						if err := s.messenger.SyncVault(ctx, event.KID); err != nil {
 							return err
 						}
-						if ck == nil {
-							logger.Infof("Channel key not found: %s", event.KID)
-							continue
-						}
-						// Pull channel
 					}
 				}
 			}
 			for _, event := range events {
 				out := &RelayOutput{
-					KID: event.KID.String(),
+					Channel: event.KID.String(),
 				}
 				if err := srv.Send(out); err != nil {
 					return err
@@ -145,4 +144,16 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 			}
 		}
 	}
+}
+
+func (s *service) relayTokens(ctx context.Context) ([]string, error) {
+	tokens, err := s.vault.Keyring().Tokens()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(tokens))
+	for _, token := range tokens {
+		out = append(out, token.Token)
+	}
+	return out, nil
 }

@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/getchill-app/messaging"
 	"github.com/keys-pub/keys"
-	"github.com/keys-pub/keys-ext/http/api"
-	kapi "github.com/keys-pub/keys/api"
-	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/dstore/events"
 	"github.com/keys-pub/keys/encoding"
 	"github.com/keys-pub/keys/tsutil"
@@ -20,18 +18,15 @@ import (
 // so the client can show the a pending message right away.
 // Preparing before create is optional.
 func (s *service) MessagePrepare(ctx context.Context, req *MessagePrepareRequest) (*MessagePrepareResponse, error) {
-	if req.Sender == "" {
-		return nil, errors.Errorf("no sender specified")
-	}
 	if req.Channel == "" {
 		return nil, errors.Errorf("no channel specified")
 	}
 
-	sender, err := s.lookup(ctx, req.Sender, nil)
+	currentUser, err := s.currentUser()
 	if err != nil {
 		return nil, err
 	}
-	senderKey, err := s.key(ctx, sender)
+	sender, err := s.key(ctx, currentUser.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +36,7 @@ func (s *service) MessagePrepare(ctx context.Context, req *MessagePrepareRequest
 	id := encoding.MustEncode(keys.RandBytes(32), encoding.Base62)
 	message := &Message{
 		ID:        id,
-		Sender:    senderKey,
+		Sender:    sender,
 		Text:      []string{text},
 		Status:    MessagePending,
 		CreatedAt: tsutil.Millis(s.clock.Now()),
@@ -58,27 +53,20 @@ func processText(s string) string {
 
 // MessageCreate (RPC) creates a message for a recipient.
 func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) (*MessageCreateResponse, error) {
-	if req.Sender == "" {
-		return nil, errors.Errorf("no sender specified")
-	}
 	if req.Channel == "" {
 		return nil, errors.Errorf("no channel specified")
 	}
 
 	text := processText(req.Text)
 	if strings.HasPrefix(text, "/") {
-		msg, err := s.command(ctx, text, req.Sender, req.Channel)
+		msg, err := s.command(ctx, text, req.Channel)
 		if err != nil {
 			return nil, err
 		}
 		return &MessageCreateResponse{Message: msg}, nil
 	}
 
-	sender, err := s.lookup(ctx, req.Sender, nil)
-	if err != nil {
-		return nil, err
-	}
-	senderKey, err := s.vault.Keyring().Key(sender)
+	currentUser, err := s.currentUser()
 	if err != nil {
 		return nil, err
 	}
@@ -87,25 +75,14 @@ func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) 
 	if err != nil {
 		return nil, err
 	}
-	ck, err := s.vault.Keyring().Key(channel)
-	if err != nil {
-		return nil, err
-	}
 
 	// TODO: Prev
-	id := req.ID
-	if id == "" {
-		id = encoding.MustEncode(keys.RandBytes(32), encoding.Base62)
-	}
-	msg := &api.Message{
-		ID:        id,
-		Text:      text,
-		Sender:    sender,
-		Timestamp: s.clock.NowMillis(),
+	msg := messaging.NewMessage(channel, currentUser.ID).WithText(text).WithTimestamp(s.clock.NowMillis())
+	if req.ID != "" {
+		msg.ID = req.ID
 	}
 
-	// TODO: Send message
-	if err := s.messageSend(ctx, msg, senderKey.AsEdX25519(), ck.AsEdX25519()); err != nil {
+	if err := s.messenger.Send(ctx, msg); err != nil {
 		return nil, err
 	}
 
@@ -119,149 +96,31 @@ func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) 
 	}, nil
 }
 
-func (s *service) messageSend(ctx context.Context, message *api.Message, sender *keys.EdX25519Key, channel *keys.EdX25519Key) error {
-	return errors.Errorf("not implemented")
-}
-
 // Messages (RPC) lists messages.
 func (s *service) Messages(ctx context.Context, req *MessagesRequest) (*MessagesResponse, error) {
 	channel, err := keys.ParseID(req.Channel)
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid channel")
 	}
-	ck, err := s.vault.Keyring().Key(channel)
-	if err != nil {
-		return nil, err
-	}
 
 	if req.Update {
-		if err := s.pullMessages(ctx, ck); err != nil {
+		if err := s.messenger.SyncVault(ctx, channel); err != nil {
 			return nil, err
 		}
 	}
 
-	messages, err := s.messages(ctx, ck)
+	messages, err := s.messenger.Messages(channel)
+	if err != nil {
+		return nil, err
+	}
+	out, err := s.messagesToRPC(ctx, messages)
 	if err != nil {
 		return nil, err
 	}
 
 	return &MessagesResponse{
-		Messages: messages,
+		Messages: out,
 	}, nil
-}
-
-func (s *service) message(ctx context.Context, ck *kapi.Key, path string) (*Message, error) {
-	doc, err := s.db.Get(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-	if doc == nil {
-		return nil, nil
-	}
-
-	var event events.Event
-	if err := doc.To(&event); err != nil {
-		return nil, err
-	}
-
-	msg, err := api.DecryptMessageFromEvent(&event, ck.AsEdX25519())
-	if err != nil {
-		logger.Errorf("Failed to decrypt message %s: %v", path, err)
-		msg := &Message{
-			ID:        fmt.Sprintf("%s-%d", ck.ID, event.Index),
-			Status:    MessageError,
-			Text:      []string{err.Error()},
-			CreatedAt: event.Timestamp,
-		}
-		return msg, nil
-	}
-
-	return s.messageToRPC(ctx, msg)
-}
-
-func (s *service) messages(ctx context.Context, ck *kapi.Key) ([]*Message, error) {
-	path := dstore.Path("messages", ck.ID)
-	iter, err := s.db.DocumentIterator(ctx, path, dstore.NoData())
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Release()
-	messages := make([]*Message, 0, 100)
-	for {
-		e, err := iter.Next()
-		if err != nil {
-			return nil, err
-		}
-		if e == nil {
-			break
-		}
-		// logger.Debugf("Message %s", e.Path)
-		message, err := s.message(ctx, ck, e.Path)
-		if err != nil {
-
-			return nil, err
-		}
-		messages = append(messages, message)
-	}
-	return messages, nil
-}
-
-func (s *service) pullMessages(ctx context.Context, ck *kapi.Key) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			truncated, err := s.pullMessagesNext(ctx, ck)
-			if err != nil {
-				return err
-			}
-			if !truncated {
-				return nil
-			}
-		}
-	}
-}
-
-func (s *service) pullMessagesNext(ctx context.Context, ck *kapi.Key) (bool, error) {
-	logger.Infof("Pull messages (%s)...", ck.ID)
-
-	status, err := s.channelStatus(ctx, ck.ID)
-	if err != nil {
-		return false, err
-	}
-	if status == nil {
-		status = &channelStatus{}
-	}
-
-	// Get messages
-	logger.Infof("Pull messages from %d", status.Index)
-	msgs, err := s.messagesList(ctx, ck.AsEdX25519(), &MessagesOpts{Index: status.Index})
-	if err != nil {
-		return false, err
-	}
-
-	logger.Infof("Received %d messages", len(msgs.Events))
-
-	for _, event := range msgs.Events {
-		// logger.Debugf("Saving message %d", event.Index)
-		path := dstore.Path("messages", ck.ID, pad(event.Index))
-		if err := s.db.Set(ctx, path, dstore.From(event)); err != nil {
-			return false, err
-		}
-
-		if err := s.updateStatusFromMessage(ctx, event, status, ck); err != nil {
-			logger.Errorf("Failed to decrypt message: %v", err)
-			continue
-		}
-	}
-	status.Index = msgs.Index
-
-	if err := s.updateChannelStatus(ctx, status); err != nil {
-		return false, err
-	}
-
-	return msgs.Truncated, nil
 }
 
 // MessagesOpts options for Messages.
@@ -274,49 +133,19 @@ type MessagesOpts struct {
 	Limit int
 }
 
-func (s *service) messagesList(ctx context.Context, channel *keys.EdX25519Key, opts *MessagesOpts) (*api.Events, error) {
-	return nil, errors.Errorf("not implemented")
-}
-
-func (s *service) updateStatusFromMessage(ctx context.Context, event *events.Event, status *channelStatus, ck *kapi.Key) error {
-	// Decrypt message temporarily to update channel state
-	msg, err := api.DecryptMessageFromEvent(event, ck.AsEdX25519())
-	if err != nil {
-		return err
-	}
-
-	// Update snippet
-	rmsg, err := s.messageToRPC(ctx, msg)
-	if err != nil {
-		return err
-	}
-	if len(rmsg.Text) > 0 {
-		status.Snippet = rmsg.Text[len(rmsg.Text)-1]
-	}
-
-	// Update channel info
-	if msg.ChannelInfo != nil {
-		if msg.ChannelInfo.Name != "" {
-			status.Name = msg.ChannelInfo.Name
+func (s *service) messagesToRPC(ctx context.Context, msgs []*messaging.Message) ([]*Message, error) {
+	out := make([]*Message, 0, len(msgs))
+	for _, msg := range msgs {
+		m, err := s.messageToRPC(ctx, msg)
+		if err != nil {
+			return nil, err
 		}
-		if msg.ChannelInfo.Description != "" {
-			status.Description = msg.ChannelInfo.Description
-		}
+		out = append(out, m)
 	}
-	status.Timestamp = msg.Timestamp
-	status.RemoteTimestamp = msg.RemoteTimestamp
-
-	return nil
+	return out, nil
 }
 
-func pad(n int64) string {
-	if n > 999999999999999 {
-		panic("int too large for padding")
-	}
-	return fmt.Sprintf("%015d", n)
-}
-
-func (s *service) messageToRPC(ctx context.Context, msg *api.Message) (*Message, error) {
+func (s *service) messageToRPC(ctx context.Context, msg *messaging.Message) (*Message, error) {
 	if msg == nil {
 		return nil, nil
 	}
@@ -341,28 +170,35 @@ func (s *service) messageToRPC(ctx context.Context, msg *api.Message) (*Message,
 	}, nil
 }
 
-func (s *service) messageText(ctx context.Context, msg *api.Message, sender *Key) ([]string, error) {
+func userNameForKey(k *Key) string {
+	if k.User != nil && k.User.ID != "" {
+		return k.User.ID
+	}
+	return k.ID
+}
+
+func (s *service) messageText(ctx context.Context, msg *messaging.Message, sender *Key) ([]string, error) {
 	texts := []string{}
 	if msg.Text != "" {
 		texts = append(texts, msg.Text)
 	}
 
-	// // Info
-	// if msg.ChannelInfo != nil && msg.ChannelInfo.Name != "" {
-	// 	texts = append(texts, fmt.Sprintf("%s set the channel name to %s", sender.userName(), msg.ChannelInfo.Name))
-	// }
-	// if msg.ChannelInfo != nil && msg.ChannelInfo.Description != "" {
-	// 	texts = append(texts, fmt.Sprintf("%s set the channel description to %s", sender.userName(), msg.ChannelInfo.Description))
-	// }
+	if msg.Command != nil {
+		if msg.Command.ChannelInfo != nil && msg.Command.ChannelInfo.Name != "" {
+			texts = append(texts, fmt.Sprintf("%s set the channel name to %s", userNameForKey(sender), msg.Command.ChannelInfo.Name))
+		}
+		if msg.Command.ChannelInfo != nil && msg.Command.ChannelInfo.Description != "" {
+			texts = append(texts, fmt.Sprintf("%s set the channel description to %s", userNameForKey(sender), msg.Command.ChannelInfo.Description))
+		}
 
-	// // Notifications
-	// for _, invite := range msg.ChannelInvites {
-	// 	recipient, err := s.resolveKey(ctx, invite.Recipient)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	texts = append(texts, fmt.Sprintf("%s invited %s", sender.userName(), recipient.userName()))
-	// }
+		// for _, invite := range msg.Command.ChannelInvites {
+		// 	recipient, err := s.resolveKey(ctx, invite.Recipient)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	texts = append(texts, fmt.Sprintf("%s invited %s", sender.userName(), recipient.userName()))
+		// }
+	}
 
 	return texts, nil
 }

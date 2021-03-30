@@ -60,6 +60,9 @@ type RPCClient interface {
 	Messages(ctx context.Context, in *MessagesRequest, opts ...grpc.CallOption) (*MessagesResponse, error)
 	// Relay
 	Relay(ctx context.Context, in *RelayRequest, opts ...grpc.CallOption) (RPC_RelayClient, error)
+	// DB
+	Collections(ctx context.Context, in *CollectionsRequest, opts ...grpc.CallOption) (*CollectionsResponse, error)
+	Documents(ctx context.Context, in *DocumentsRequest, opts ...grpc.CallOption) (*DocumentsResponse, error)
 }
 
 type rPCClient struct {
@@ -426,6 +429,24 @@ func (x *rPCRelayClient) Recv() (*RelayOutput, error) {
 	return m, nil
 }
 
+func (c *rPCClient) Collections(ctx context.Context, in *CollectionsRequest, opts ...grpc.CallOption) (*CollectionsResponse, error) {
+	out := new(CollectionsResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Collections", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Documents(ctx context.Context, in *DocumentsRequest, opts ...grpc.CallOption) (*DocumentsResponse, error) {
+	out := new(DocumentsResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Documents", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RPCServer is the server API for RPC service.
 // All implementations must embed UnimplementedRPCServer
 // for forward compatibility
@@ -473,6 +494,9 @@ type RPCServer interface {
 	Messages(context.Context, *MessagesRequest) (*MessagesResponse, error)
 	// Relay
 	Relay(*RelayRequest, RPC_RelayServer) error
+	// DB
+	Collections(context.Context, *CollectionsRequest) (*CollectionsResponse, error)
+	Documents(context.Context, *DocumentsRequest) (*DocumentsResponse, error)
 	mustEmbedUnimplementedRPCServer()
 }
 
@@ -590,6 +614,12 @@ func (*UnimplementedRPCServer) Messages(context.Context, *MessagesRequest) (*Mes
 }
 func (*UnimplementedRPCServer) Relay(*RelayRequest, RPC_RelayServer) error {
 	return status.Errorf(codes.Unimplemented, "method Relay not implemented")
+}
+func (*UnimplementedRPCServer) Collections(context.Context, *CollectionsRequest) (*CollectionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Collections not implemented")
+}
+func (*UnimplementedRPCServer) Documents(context.Context, *DocumentsRequest) (*DocumentsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Documents not implemented")
 }
 func (*UnimplementedRPCServer) mustEmbedUnimplementedRPCServer() {}
 
@@ -1266,6 +1296,42 @@ func (x *rPCRelayServer) Send(m *RelayOutput) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _RPC_Collections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CollectionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Collections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Collections",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Collections(ctx, req.(*CollectionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Documents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DocumentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Documents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Documents",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Documents(ctx, req.(*DocumentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _RPC_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "service.RPC",
 	HandlerType: (*RPCServer)(nil),
@@ -1413,6 +1479,14 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Messages",
 			Handler:    _RPC_Messages_Handler,
+		},
+		{
+			MethodName: "Collections",
+			Handler:    _RPC_Collections_Handler,
+		},
+		{
+			MethodName: "Documents",
+			Handler:    _RPC_Documents_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

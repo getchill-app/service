@@ -69,7 +69,7 @@ func (s *service) lookupKID(ctx context.Context, key string, searchRemote bool) 
 	}
 
 	if searchRemote {
-		res, err := s.client.User(ctx, kid)
+		res, err := s.hclient.User(ctx, kid)
 		if err != nil {
 			return "", err
 		}

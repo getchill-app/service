@@ -19,9 +19,6 @@ func (s *service) KeyExport(ctx context.Context, req *KeyExportRequest) (*KeyExp
 	if err != nil {
 		return nil, err
 	}
-	if key == nil {
-		return nil, keys.NewErrNotFound(id.String())
-	}
 
 	if req.NoPassword && req.Password != "" {
 		return nil, errors.Errorf("no password option set with password")

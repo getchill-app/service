@@ -141,9 +141,6 @@ func (s *service) StatementCreate(ctx context.Context, req *StatementCreateReque
 	if err != nil {
 		return nil, err
 	}
-	if key == nil {
-		return nil, keys.NewErrNotFound(req.KID)
-	}
 	if !key.IsEdX25519() {
 		return nil, errors.Errorf("invalid key type")
 	}
@@ -161,7 +158,7 @@ func (s *service) StatementCreate(ctx context.Context, req *StatementCreateReque
 	}
 
 	if !req.Local {
-		if err := s.client.SigchainSave(ctx, st); err != nil {
+		if err := s.hclient.SigchainSave(ctx, st); err != nil {
 			return nil, err
 		}
 	}
@@ -187,9 +184,6 @@ func (s *service) StatementRevoke(ctx context.Context, req *StatementRevokeReque
 	if err != nil {
 		return nil, err
 	}
-	if key == nil {
-		return nil, keys.NewErrNotFound(kid.String())
-	}
 	if !key.IsEdX25519() {
 		return nil, errors.Errorf("invalid key type")
 	}
@@ -205,7 +199,7 @@ func (s *service) StatementRevoke(ctx context.Context, req *StatementRevokeReque
 	}
 
 	if !req.Local {
-		if err := s.client.SigchainSave(ctx, st); err != nil {
+		if err := s.hclient.SigchainSave(ctx, st); err != nil {
 			return nil, err
 		}
 	}

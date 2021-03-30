@@ -196,14 +196,6 @@ github.com/keys-pub/keys-ext/http/server v0.0.0-20210327130412-59e9fcfcf22c h1:Z
 github.com/keys-pub/keys-ext/http/server v0.0.0-20210327130412-59e9fcfcf22c/go.mod h1:MxT1CW4gh3tsdwCg5wDnkuzAQHkknV0H7cLSycpjes8=
 github.com/keys-pub/keys-ext/sqlcipher v0.0.0-20210327130412-59e9fcfcf22c h1:V3YGXkZfTIx7Elmtqa2uxIMhGOt67Eo1KetpUVyUtGk=
 github.com/keys-pub/keys-ext/sqlcipher v0.0.0-20210327130412-59e9fcfcf22c/go.mod h1:Oj8BkzpCS2618xKHlfWvhmejezBwPcuK1B/AwuyYlPw=
-github.com/keys-pub/keys-ext/ws/api v0.0.0-20201208014450-6b7883173a82/go.mod h1:LbgwcQT1R5W8EBRHmDeE6d2lr0t4EYS6J9ih2Jv4iN8=
-github.com/keys-pub/keys-ext/ws/api v0.0.0-20210103224716-09cb2ea897fb/go.mod h1:LbgwcQT1R5W8EBRHmDeE6d2lr0t4EYS6J9ih2Jv4iN8=
-github.com/keys-pub/keys-ext/ws/api v0.0.0-20210103224830-a8720c3ddd9b/go.mod h1:LbgwcQT1R5W8EBRHmDeE6d2lr0t4EYS6J9ih2Jv4iN8=
-github.com/keys-pub/keys-ext/ws/api v0.0.0-20210326150845-39fd96e22101/go.mod h1:LbgwcQT1R5W8EBRHmDeE6d2lr0t4EYS6J9ih2Jv4iN8=
-github.com/keys-pub/keys-ext/ws/api v0.0.0-20210327130412-59e9fcfcf22c h1:bK7s/mjGyX7tuH2nSjBq/FO9t3spcWU2ZeHLWOsLbXA=
-github.com/keys-pub/keys-ext/ws/api v0.0.0-20210327130412-59e9fcfcf22c/go.mod h1:LbgwcQT1R5W8EBRHmDeE6d2lr0t4EYS6J9ih2Jv4iN8=
-github.com/keys-pub/keys-ext/ws/client v0.0.0-20210327130412-59e9fcfcf22c h1:N2Jn9Js545ti8169RoQpWr9IKf4GHcJqoj7yPVtTicw=
-github.com/keys-pub/keys-ext/ws/client v0.0.0-20210327130412-59e9fcfcf22c/go.mod h1:1FQ1k6CudOD1kbdXWwRAaROfZiRU2D9jmMMrNUlgjKU=
 github.com/keys-pub/secretservice v0.0.0-20200519003656-26e44b8df47f/go.mod h1:YRHMiVbZqh7u8xRm77CvwJNAZdDlNXwWvQ4DK0N9mYg=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=

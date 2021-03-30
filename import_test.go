@@ -40,7 +40,7 @@ func TestKeyImport(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, out.ID, key.ID())
 
-	sks, err := kr.KeysByType(string(keys.EdX25519))
+	sks, err := kr.KeysWithType(string(keys.EdX25519))
 	require.NoError(t, err)
 	require.Equal(t, 1, len(sks))
 
