@@ -6,10 +6,10 @@ import (
 
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/sqlcipher"
-	"github.com/keys-pub/keys/api"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/keys-pub/vault"
 	"github.com/keys-pub/vault/auth"
+	"github.com/keys-pub/vault/auth/api"
 	"github.com/pkg/errors"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -36,33 +36,35 @@ func authErr(err error, typ AuthType, wrap string) error {
 
 // AuthSetup (RPC) ...
 func (s *service) AuthSetup(ctx context.Context, req *AuthSetupRequest) (*AuthSetupResponse, error) {
-	s.unlockMtx.Lock()
-	defer s.unlockMtx.Unlock()
+	// s.unlockMtx.Lock()
+	// defer s.unlockMtx.Unlock()
 
-	logger.Infof("Auth setup...")
-	if s.vault.Status() != vault.SetupNeeded {
-		return nil, errors.Errorf("already setup")
-	}
+	// logger.Infof("Auth setup...")
+	// if s.vault.Status() != vault.SetupNeeded {
+	// 	return nil, errors.Errorf("already setup")
+	// }
 
-	logger.Infof("Setup (%s)", req.Type)
-	switch req.Type {
-	case PasswordAuth:
-		if _, err := s.vault.SetupPassword(req.Secret); err != nil {
-			return nil, authErr(err, req.Type, "failed to setup")
-		}
-	case PaperKeyAuth:
-		// TODO: Implement
-		return nil, errors.Errorf("setup with paper key not supported")
-	case FIDO2HMACSecretAuth:
-		_, err := s.vault.GenerateFIDO2HMACSecret(ctx, req.Secret, req.Device, s.env.AppName())
-		if err != nil {
-			return nil, authErr(err, req.Type, "failed to setup")
-		}
-	default:
-		return nil, errors.Errorf("unsupported auth type")
-	}
+	// logger.Infof("Setup (%s)", req.Type)
+	// switch req.Type {
+	// case PasswordAuth:
+	// 	if _, err := s.vault.SetupPassword(req.Secret); err != nil {
+	// 		return nil, authErr(err, req.Type, "failed to setup password")
+	// 	}
+	// case PaperKeyAuth:
+	// 	if _, err := s.vault.SetupPaperKey(req.Secret); err != nil {
+	// 		return nil, authErr(err, req.Type, "failed to setup paper key")
+	// 	}
+	// case FIDO2HMACSecretAuth:
+	// 	_, err := s.vault.GenerateFIDO2HMACSecret(ctx, req.Secret, req.Device, s.env.AppName())
+	// 	if err != nil {
+	// 		return nil, authErr(err, req.Type, "failed to setup fido2")
+	// 	}
+	// default:
+	// 	return nil, errors.Errorf("unsupported auth type")
+	// }
 
-	return &AuthSetupResponse{}, nil
+	// return &AuthSetupResponse{}, nil
+	return nil, errors.Errorf("not implemented")
 }
 
 func (s *service) unlock(ctx context.Context, req *AuthUnlockRequest) (*[32]byte, error) {
@@ -74,10 +76,11 @@ func (s *service) unlock(ctx context.Context, req *AuthUnlockRequest) (*[32]byte
 		}
 		return mk, nil
 	case PaperKeyAuth:
-		// if _, err := s.vault.UnlockWithPaperKey(req.Secret); err != nil {
-		// 	return nil, authErr(err, req.Type, "failed to unlock")
-		// }
-		return nil, errors.Errorf("unlock with paper key not supported")
+		mk, err := s.vault.UnlockWithPaperKey(req.Secret)
+		if err != nil {
+			return nil, authErr(err, req.Type, "failed to unlock")
+		}
+		return mk, nil
 	case FIDO2HMACSecretAuth:
 		mk, err := s.vault.UnlockWithFIDO2HMACSecret(ctx, req.Secret)
 		if err != nil {
@@ -91,19 +94,20 @@ func (s *service) unlock(ctx context.Context, req *AuthUnlockRequest) (*[32]byte
 
 // AuthUnlock (RPC) ...
 func (s *service) AuthUnlock(ctx context.Context, req *AuthUnlockRequest) (*AuthUnlockResponse, error) {
+	resp, _, err := s.authUnlock(ctx, req)
+	return resp, err
+}
+
+func (s *service) authUnlock(ctx context.Context, req *AuthUnlockRequest) (*AuthUnlockResponse, *[32]byte, error) {
 	s.unlockMtx.Lock()
 	defer s.unlockMtx.Unlock()
 
 	mk, err := s.unlock(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := s.openDB(ctx, mk); err != nil {
-		return nil, err
-	}
-
-	if err := s.setupAccount(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	logger.Infof("Unlocked (%s)", req.Type)
@@ -113,25 +117,7 @@ func (s *service) AuthUnlock(ctx context.Context, req *AuthUnlockRequest) (*Auth
 
 	return &AuthUnlockResponse{
 		AuthToken: token,
-	}, nil
-}
-
-func (s *service) setupAccount() error {
-	// TODO: Implement
-	currentUser, err := s.currentUserID()
-	if err != nil {
-		return err
-	}
-	if currentUser == "" {
-		user := api.NewKey(keys.GenerateEdX25519Key()).Created(s.clock.NowMillis())
-		if err := s.vault.Keyring().Set(user); err != nil {
-			return err
-		}
-		if err := s.setCurrentUser(user.ID); err != nil {
-			return err
-		}
-	}
-	return nil
+	}, mk, nil
 }
 
 func (s *service) openDB(ctx context.Context, mk *[32]byte) error {
@@ -153,6 +139,7 @@ func (s *service) openDB(ctx context.Context, mk *[32]byte) error {
 func (s *service) AuthLock(ctx context.Context, req *AuthLockRequest) (*AuthLockResponse, error) {
 	s.unlockMtx.Lock()
 	defer s.unlockMtx.Unlock()
+	logger.Infof("Locking...")
 
 	s.stopCheck()
 	s.db.Close()
@@ -189,20 +176,21 @@ func (s *service) AuthReset(ctx context.Context, req *AuthResetRequest) (*AuthRe
 
 // AuthProvision (RPC) ...
 func (s *service) AuthProvision(ctx context.Context, req *AuthProvisionRequest) (*AuthProvisionResponse, error) {
-	var auth *auth.Auth
-	var err error
-	switch req.Type {
-	case PasswordAuth:
-		auth, err = s.vault.RegisterPassword(req.Secret)
-	default:
-		return nil, errors.Errorf("unsupported provision type")
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &AuthProvisionResponse{
-		Provision: authToRPC(auth),
-	}, nil
+	// var auth *auth.Auth
+	// var err error
+	// switch req.Type {
+	// case PasswordAuth:
+	// 	auth, err = s.vault.RegisterPassword(req.Secret)
+	// default:
+	// 	return nil, errors.Errorf("unsupported provision type")
+	// }
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return &AuthProvisionResponse{
+	// 	Provision: authToRPC(auth),
+	// }, nil
+	return nil, errors.Errorf("not implemented")
 }
 
 // AuthDeprovision (RPC) ...
@@ -245,11 +233,11 @@ func authToRPC(auth *auth.Auth) *AuthProvision {
 
 func authTypeToRPC(t auth.Type) AuthType {
 	switch t {
-	case auth.PasswordType:
+	case api.PasswordType:
 		return PasswordAuth
-	case auth.PaperKeyType:
+	case api.PaperKeyType:
 		return PaperKeyAuth
-	case auth.FIDO2HMACSecretType:
+	case api.FIDO2HMACSecretType:
 		return FIDO2HMACSecretAuth
 	default:
 		return UnknownAuth

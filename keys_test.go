@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -12,6 +11,7 @@ import (
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/api"
 	"github.com/keys-pub/keys/http"
+	"github.com/keys-pub/vault/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -132,9 +132,9 @@ func TestKeysMissingSigchain(t *testing.T) {
 	require.Equal(t, 1, len(resp.Keys))
 }
 
-var alice = keys.NewEdX25519KeyFromSeed(keys.Bytes32(bytes.Repeat([]byte{0x01}, 32)))
-var bob = keys.NewEdX25519KeyFromSeed(keys.Bytes32(bytes.Repeat([]byte{0x02}, 32)))
-var charlie = keys.NewEdX25519KeyFromSeed(keys.Bytes32(bytes.Repeat([]byte{0x03}, 32)))
+var alice = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x01))
+var bob = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x02))
+var charlie = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x03))
 
 func testImportKey(t *testing.T, service *service, key *keys.EdX25519Key) {
 	encoded, err := api.EncodeKey(api.NewKey(key), authPassword)

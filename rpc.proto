@@ -16,6 +16,10 @@ service RPC {
   rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {}
   rpc AuthReset(AuthResetRequest) returns (AuthResetResponse) {}
   rpc Status(StatusRequest) returns (StatusResponse) {}
+  
+  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}
+  rpc Rand(RandRequest) returns (RandResponse) {}
+  rpc RandPassword(RandPasswordRequest) returns (RandPasswordResponse) {}  
   // END NO AUTH  
 
   rpc KeyGenerate(KeyGenerateRequest) returns (KeyGenerateResponse) {}
@@ -30,10 +34,7 @@ service RPC {
   rpc UserSearch(UserSearchRequest) returns (UserSearchResponse) {}
   rpc UserService(UserServiceRequest) returns (UserServiceResponse) {}
   rpc UserSign(UserSignRequest) returns (UserSignResponse) {}
-  rpc UserAdd(UserAddRequest) returns (UserAddResponse) {}    
-
-  rpc Rand(RandRequest) returns (RandResponse) {}
-  rpc RandPassword(RandPasswordRequest) returns (RandPasswordResponse) {}  
+  rpc UserAdd(UserAddRequest) returns (UserAddResponse) {}      
 
   rpc Pull(PullRequest) returns (PullResponse) {}
 
@@ -596,4 +597,17 @@ message DocumentsRequest {
 }
 message DocumentsResponse {
   repeated Document documents = 1;
+}
+
+message AccountCreateRequest {
+  string email = 1;
+  // Password registered.
+  string password = 2;
+  // AccountKey is optional (generated if not specified).
+  string accountKey = 3;
+  // ClientKey is optional (generated if not specified).
+  string clientKey = 4;
+}
+message AccountCreateResponse {
+  string authToken = 1;
 }

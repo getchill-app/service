@@ -27,7 +27,7 @@ func TestEnv(t *testing.T) {
 	require.Equal(t, 9999, env.Port())
 
 	env.SetInt("port", 3001)
-	env.Set("server", "https://server.url")
+	env.Set("keys-pub-server", "https://server.url")
 	env.SetBool("disableSymlinkCheck", true)
 	err = env.Save()
 	require.NoError(t, err)
@@ -35,7 +35,7 @@ func TestEnv(t *testing.T) {
 	env2, err := NewEnv("KeysTest", build)
 	require.NoError(t, err)
 	require.Equal(t, 3001, env2.Port())
-	require.Equal(t, "https://server.url", env2.Server())
+	require.Equal(t, "https://server.url", env2.KeysPubServerURL())
 	require.True(t, env2.GetBool("disableSymlinkCheck"))
 }
 

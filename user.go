@@ -10,7 +10,6 @@ import (
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/http/api"
 	"github.com/keys-pub/keys-ext/http/client"
-	kapi "github.com/keys-pub/keys/api"
 	"github.com/keys-pub/keys/user"
 	"github.com/keys-pub/keys/user/services"
 	"github.com/keys-pub/keys/user/validate"
@@ -442,27 +441,4 @@ func twitterProxy(usr *user.User) services.Service {
 		return services.Proxy
 	}
 	return nil
-}
-
-func (s *service) currentUserID() (keys.ID, error) {
-	return s.vault.Config().KID("currentUser")
-}
-
-func (s *service) currentUser() (*kapi.Key, error) {
-	kid, err := s.currentUserID()
-	if err != nil {
-		return nil, err
-	}
-	if kid == "" {
-		return nil, nil
-	}
-	key, err := s.vault.Keyring().Key(kid)
-	if err != nil {
-		return nil, err
-	}
-	return key, nil
-}
-
-func (s *service) setCurrentUser(kid keys.ID) error {
-	return s.vault.Config().SetKID("currentUser", kid)
 }

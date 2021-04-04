@@ -22,10 +22,15 @@ func (s *service) startCheck() {
 	s.checkCancelFn = cancel
 	s.checking = true
 
+	init := false
 	go func() {
-		s.tryCheck(ctx)
 		for {
 			select {
+			case <-time.After(time.Second * 5):
+				if !init {
+					init = true
+					s.tryCheck(ctx)
+				}
 			case <-ticker.C:
 				s.tryCheck(ctx)
 			case <-ctx.Done():

@@ -24,6 +24,9 @@ type RPCClient interface {
 	AuthLock(ctx context.Context, in *AuthLockRequest, opts ...grpc.CallOption) (*AuthLockResponse, error)
 	AuthReset(ctx context.Context, in *AuthResetRequest, opts ...grpc.CallOption) (*AuthResetResponse, error)
 	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
+	Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error)
+	RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error)
 	KeyGenerate(ctx context.Context, in *KeyGenerateRequest, opts ...grpc.CallOption) (*KeyGenerateResponse, error)
 	Keys(ctx context.Context, in *KeysRequest, opts ...grpc.CallOption) (*KeysResponse, error)
 	Key(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*KeyResponse, error)
@@ -36,8 +39,6 @@ type RPCClient interface {
 	UserService(ctx context.Context, in *UserServiceRequest, opts ...grpc.CallOption) (*UserServiceResponse, error)
 	UserSign(ctx context.Context, in *UserSignRequest, opts ...grpc.CallOption) (*UserSignResponse, error)
 	UserAdd(ctx context.Context, in *UserAddRequest, opts ...grpc.CallOption) (*UserAddResponse, error)
-	Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error)
-	RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error)
 	Pull(ctx context.Context, in *PullRequest, opts ...grpc.CallOption) (*PullResponse, error)
 	Sigchain(ctx context.Context, in *SigchainRequest, opts ...grpc.CallOption) (*SigchainResponse, error)
 	Statement(ctx context.Context, in *StatementRequest, opts ...grpc.CallOption) (*StatementResponse, error)
@@ -112,6 +113,33 @@ func (c *rPCClient) AuthReset(ctx context.Context, in *AuthResetRequest, opts ..
 func (c *rPCClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
 	out := new(StatusResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/Status", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error) {
+	out := new(AccountCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error) {
+	out := new(RandResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Rand", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error) {
+	out := new(RandPasswordResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/RandPassword", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -220,24 +248,6 @@ func (c *rPCClient) UserSign(ctx context.Context, in *UserSignRequest, opts ...g
 func (c *rPCClient) UserAdd(ctx context.Context, in *UserAddRequest, opts ...grpc.CallOption) (*UserAddResponse, error) {
 	out := new(UserAddResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/UserAdd", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error) {
-	out := new(RandResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/Rand", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error) {
-	out := new(RandPasswordResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/RandPassword", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -458,6 +468,9 @@ type RPCServer interface {
 	AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error)
 	AuthReset(context.Context, *AuthResetRequest) (*AuthResetResponse, error)
 	Status(context.Context, *StatusRequest) (*StatusResponse, error)
+	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
+	Rand(context.Context, *RandRequest) (*RandResponse, error)
+	RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error)
 	KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error)
 	Keys(context.Context, *KeysRequest) (*KeysResponse, error)
 	Key(context.Context, *KeyRequest) (*KeyResponse, error)
@@ -470,8 +483,6 @@ type RPCServer interface {
 	UserService(context.Context, *UserServiceRequest) (*UserServiceResponse, error)
 	UserSign(context.Context, *UserSignRequest) (*UserSignResponse, error)
 	UserAdd(context.Context, *UserAddRequest) (*UserAddResponse, error)
-	Rand(context.Context, *RandRequest) (*RandResponse, error)
-	RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error)
 	Pull(context.Context, *PullRequest) (*PullResponse, error)
 	Sigchain(context.Context, *SigchainRequest) (*SigchainResponse, error)
 	Statement(context.Context, *StatementRequest) (*StatementResponse, error)
@@ -519,6 +530,15 @@ func (*UnimplementedRPCServer) AuthReset(context.Context, *AuthResetRequest) (*A
 func (*UnimplementedRPCServer) Status(context.Context, *StatusRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
+func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountCreate not implemented")
+}
+func (*UnimplementedRPCServer) Rand(context.Context, *RandRequest) (*RandResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rand not implemented")
+}
+func (*UnimplementedRPCServer) RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RandPassword not implemented")
+}
 func (*UnimplementedRPCServer) KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeyGenerate not implemented")
 }
@@ -554,12 +574,6 @@ func (*UnimplementedRPCServer) UserSign(context.Context, *UserSignRequest) (*Use
 }
 func (*UnimplementedRPCServer) UserAdd(context.Context, *UserAddRequest) (*UserAddResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserAdd not implemented")
-}
-func (*UnimplementedRPCServer) Rand(context.Context, *RandRequest) (*RandResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Rand not implemented")
-}
-func (*UnimplementedRPCServer) RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RandPassword not implemented")
 }
 func (*UnimplementedRPCServer) Pull(context.Context, *PullRequest) (*PullResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Pull not implemented")
@@ -713,6 +727,60 @@ func _RPC_Status_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RPCServer).Status(ctx, req.(*StatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AccountCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountCreate(ctx, req.(*AccountCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Rand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RandRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Rand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Rand",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Rand(ctx, req.(*RandRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_RandPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RandPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).RandPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/RandPassword",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).RandPassword(ctx, req.(*RandPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -929,42 +997,6 @@ func _RPC_UserAdd_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RPCServer).UserAdd(ctx, req.(*UserAddRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_Rand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RandRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).Rand(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/Rand",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).Rand(ctx, req.(*RandRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_RandPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RandPasswordRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).RandPassword(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/RandPassword",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).RandPassword(ctx, req.(*RandPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1357,6 +1389,18 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_Status_Handler,
 		},
 		{
+			MethodName: "AccountCreate",
+			Handler:    _RPC_AccountCreate_Handler,
+		},
+		{
+			MethodName: "Rand",
+			Handler:    _RPC_Rand_Handler,
+		},
+		{
+			MethodName: "RandPassword",
+			Handler:    _RPC_RandPassword_Handler,
+		},
+		{
 			MethodName: "KeyGenerate",
 			Handler:    _RPC_KeyGenerate_Handler,
 		},
@@ -1403,14 +1447,6 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UserAdd",
 			Handler:    _RPC_UserAdd_Handler,
-		},
-		{
-			MethodName: "Rand",
-			Handler:    _RPC_Rand_Handler,
-		},
-		{
-			MethodName: "RandPassword",
-			Handler:    _RPC_RandPassword_Handler,
 		},
 		{
 			MethodName: "Pull",

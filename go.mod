@@ -5,18 +5,20 @@ go 1.16
 require (
 	github.com/alta/protopatch v0.3.3
 	github.com/davecgh/go-spew v1.1.1
+	github.com/getchill-app/http-client v0.0.0-20210403012548-aee276f0e1d8
 	github.com/getchill-app/messaging v0.0.0-20210328173043-840bde55799b
-	github.com/golang/protobuf v1.5.1
+	github.com/getchill-app/server v0.0.0-20210403215008-63eeb378e83c
+	github.com/getchill-app/ws v0.0.0-20210402213525-39307cde11c0
+	github.com/getchill-app/ws/client v0.0.0-20210402213525-39307cde11c0
+	github.com/golang/protobuf v1.5.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
-	github.com/keys-pub/keys v0.1.21-0.20210326211358-fb3db764000f
+	github.com/keys-pub/keys v0.1.21-0.20210402011617-28dedbda9f32
 	github.com/keys-pub/keys-ext/auth/fido2 v0.0.0-20210327130412-59e9fcfcf22c
-	github.com/keys-pub/keys-ext/http/api v0.0.0-20210327130412-59e9fcfcf22c
+	github.com/keys-pub/keys-ext/http/api v0.0.0-20210401205654-ff14cd298c61
 	github.com/keys-pub/keys-ext/http/client v0.0.0-20210327130412-59e9fcfcf22c
-	github.com/keys-pub/keys-ext/http/server v0.0.0-20210327130412-59e9fcfcf22c
+	github.com/keys-pub/keys-ext/http/server v0.0.0-20210401205934-8b752a983cd9
 	github.com/keys-pub/keys-ext/sqlcipher v0.0.0-20210327130412-59e9fcfcf22c
-	github.com/keys-pub/keys-ext/ws/api v0.0.0-20210327130412-59e9fcfcf22c
-	github.com/keys-pub/keys-ext/ws/client v0.0.0-20210327130412-59e9fcfcf22c
-	github.com/keys-pub/vault v0.0.0-20210329171103-35fa769419c1
+	github.com/keys-pub/vault v0.0.0-20210403222024-d7c66fea4997
 	github.com/mercari/go-grpc-interceptor v0.0.0-20180110035004-b8ad3827e82a
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
@@ -25,10 +27,18 @@ require (
 	google.golang.org/protobuf v1.26.0
 )
 
+replace github.com/keys-pub/keys => ../../keys.pub/keys
+
 replace github.com/keys-pub/vault => ../../keys.pub/vault
+
+replace github.com/keys-pub/keys-ext/http/server => ../../keys.pub/keys-ext/http/server
+
+replace github.com/keys-pub/keys-ext/http/client => ../../keys.pub/keys-ext/http/client
+
+replace github.com/getchill-app/http-client => ../http-client
+
+replace github.com/getchill-app/server => ../server
 
 replace github.com/getchill-app/messaging => ../messaging
 
-replace github.com/keys-pub/keys-ext/ws/api => ../../keys.pub/keys-ext/ws/api
-
-replace github.com/keys-pub/keys-ext/ws/client => ../../keys.pub/keys-ext/ws/client
+replace github.com/getchill/ws => ../../getchill-app/ws

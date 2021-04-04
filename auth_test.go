@@ -35,6 +35,10 @@ func TestAuthUnlock(t *testing.T) {
 		Client: "test",
 	})
 	require.NoError(t, err)
+
+	ks, err := service.Keys(ctx, &KeysRequest{})
+	require.NoError(t, err)
+	require.Equal(t, 1, len(ks.Keys))
 }
 
 func TestAuthUnlockMultipleClients(t *testing.T) {

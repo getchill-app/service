@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/keys-pub/keys-ext/ws/api"
-	wsclient "github.com/keys-pub/keys-ext/ws/client"
+	wsapi "github.com/getchill-app/ws"
+	wsclient "github.com/getchill-app/ws/client"
 	"github.com/pkg/errors"
 )
 
@@ -91,7 +91,7 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 		return err
 	}
 
-	chEvents := make(chan []*api.Event)
+	chEvents := make(chan []*wsapi.Event)
 
 	wctx, cancel := context.WithCancel(ctx)
 

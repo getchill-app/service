@@ -41,10 +41,11 @@ func NewEnv(appName string, build Build) (*Env, error) {
 }
 
 // Env key names
-const serverCfgKey = "server"
+const keysPubServerCfgKey = "keys-pub-server"
+const chillServerCfgKey = "chill-server"
 const portCfgKey = "port"
 
-var configKeys = []string{serverCfgKey, portCfgKey}
+var configKeys = []string{keysPubServerCfgKey, chillServerCfgKey, portCfgKey}
 
 // IsKey returns true if config key is recognized.
 func (e Env) IsKey(s string) bool {
@@ -61,9 +62,14 @@ func (e Env) Port() int {
 	return e.GetInt(portCfgKey, e.build.DefaultPort)
 }
 
-// Server to connect to.
-func (e Env) Server() string {
-	return e.Get(serverCfgKey, "https://keys.pub")
+// KeysPubServerURL to connect to.
+func (e Env) KeysPubServerURL() string {
+	return e.Get(keysPubServerCfgKey, "https://keys.pub")
+}
+
+// ChillServerURL to connect to.
+func (e Env) ChillServerURL() string {
+	return e.Get(chillServerCfgKey, "https://getchill.app")
 }
 
 // Build describes build flags.

@@ -28,6 +28,9 @@ func newAuthInterceptor() *authInterceptor {
 		"/service.RPC/AuthUnlock",
 		"/service.RPC/AuthLock",
 		"/service.RPC/Status",
+		"/service.RPC/Rand",
+		"/service.RPC/RandPassword",
+		"/service.RPC/AccountCreate",
 	)
 
 	return &authInterceptor{
@@ -62,7 +65,7 @@ func (a *authInterceptor) checkToken(token string) error {
 
 func (a *authInterceptor) registerToken(client string) string {
 	token := generateToken()
-	logger.Debugf("Auth register client: %s", client)
+	logger.Debugf("Auth register client (%q)", client)
 	a.tokens[client] = token
 	return token
 }

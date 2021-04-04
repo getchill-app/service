@@ -28,6 +28,7 @@ type service struct {
 
 	db      *sqlcipher.DB
 	hclient *hclient.Client
+	vclient *vclient.Client
 	scs     *keys.Sigchains
 	users   *users.Users
 	clock   tsutil.Clock
@@ -62,7 +63,7 @@ func newService(
 	if err != nil {
 		return nil, err
 	}
-	vclient, err := vclient.New(env.Server())
+	vclient, err := vclient.New(env.ChillServerURL())
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +74,7 @@ func newService(
 	}
 	vault.SetFIDO2Plugin(fido2Plugin)
 
-	hclient, err := hclient.New(env.Server())
+	hclient, err := hclient.New(env.KeysPubServerURL())
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +97,7 @@ func newService(
 		users:         usrs,
 		db:            db,
 		hclient:       hclient,
+		vclient:       vclient,
 		vault:         vault,
 		relay:         relay,
 		messenger:     messenger,

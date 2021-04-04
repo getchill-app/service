@@ -5,6 +5,7 @@ import (
 
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/encoding"
+	"github.com/pkg/errors"
 )
 
 // Rand (RPC) ...
@@ -35,7 +36,11 @@ func (s *service) Rand(ctx context.Context, req *RandRequest) (*RandResponse, er
 }
 
 func (s *service) RandPassword(ctx context.Context, req *RandPasswordRequest) (*RandPasswordResponse, error) {
-	password := keys.RandPassword(int(req.Length))
+	length := int(req.Length)
+	if length < 16 {
+		return nil, errors.Errorf("invalid length")
+	}
+	password := keys.RandPassword(length)
 	return &RandPasswordResponse{
 		Password: password,
 	}, nil

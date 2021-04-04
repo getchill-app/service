@@ -4,21 +4,25 @@ import (
 	"context"
 	"testing"
 
+	"github.com/keys-pub/keys"
+	"github.com/keys-pub/vault"
+	"github.com/keys-pub/vault/client"
+	"github.com/keys-pub/vault/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestChannel(t *testing.T) {
-	// SetLogger(NewLogger(DebugLevel))
-	// saltpack.SetLogger(NewLogger(DebugLevel))
-	// client.SetLogger(NewLogger(DebugLevel))
+	SetLogger(NewLogger(DebugLevel))
+	client.SetLogger(NewLogger(DebugLevel))
+	vault.SetLogger(NewLogger(DebugLevel))
 
 	env := newTestServerEnv(t)
 
 	aliceService, aliceCloseFn := newTestService(t, env)
 	defer aliceCloseFn()
-	testAuthSetup(t, aliceService)
+	ck := keys.NewEdX25519KeyFromSeed(testutil.Seed(0xa0))
+	testAccountCreate(t, aliceService, "alice@keys.pub", alice, ck)
 	ctx := context.TODO()
-	testImportKey(t, aliceService, alice)
 	testUserSetupGithub(t, env, aliceService, alice, "alice")
 
 	// Alice creates a channel

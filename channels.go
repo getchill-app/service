@@ -31,21 +31,20 @@ func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) 
 	if len(name) > 16 {
 		return nil, errors.Errorf("channel name too long (must be < 16)")
 	}
-
-	// Create channel key
-	channelKey := keys.GenerateEdX25519Key()
-
-	logger.Debugf("Adding channel %s", channelKey.ID())
-	reg, err := s.messenger.AddChannel(ctx, channelKey)
-	if err != nil {
-		return nil, err
-	}
-
 	user, err := s.currentUser()
 	if err != nil {
 		return nil, err
 	}
 	logger.Debugf("Current user: %s", user.ID)
+
+	// Create channel key
+	channelKey := keys.GenerateEdX25519Key()
+
+	logger.Debugf("Adding channel %s", channelKey.ID())
+	reg, err := s.messenger.AddChannel(ctx, channelKey, user.AsEdX25519())
+	if err != nil {
+		return nil, err
+	}
 
 	info := &messaging.ChannelInfo{Name: name}
 	msg := messaging.NewMessageForChannelInfo(channelKey.ID(), user.ID, info)
