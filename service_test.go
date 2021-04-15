@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	chillserver "github.com/getchill-app/server"
+	chillserver "github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
 	kpserver "github.com/keys-pub/keys-ext/http/server"
 	"github.com/keys-pub/keys/dstore"
@@ -91,42 +91,10 @@ func newTestService(t *testing.T, serverEnv *testServerEnv) (*service, CloseFn) 
 	return svc, closeServiceFn
 }
 
-func testAccountCreate(t *testing.T, service *service, email string, accountKey *keys.EdX25519Key, clientKey *keys.EdX25519Key) {
+func testAccountCreate(t *testing.T, service *service, email string, password string) {
 	_, err := service.AccountCreate(context.TODO(), &AccountCreateRequest{
-		Email:      email,
-		Password:   authPassword,
-		AccountKey: accountKey.PaperKey(),
-		ClientKey:  clientKey.PaperKey(),
-	})
-	require.NoError(t, err)
-}
-
-var authPassword = "testpassword"
-
-func testAuthSetup(t *testing.T, service *service) {
-	_, err := service.AuthSetup(context.TODO(), &AuthSetupRequest{
-		Secret: authPassword,
-		Type:   PasswordAuth,
-	})
-	require.NoError(t, err)
-	_, err = service.AuthUnlock(context.TODO(), &AuthUnlockRequest{
-		Secret: authPassword,
-		Type:   PasswordAuth,
-		Client: "test",
-	})
-	require.NoError(t, err)
-}
-
-func testAuthLock(t *testing.T, service *service) {
-	_, err := service.AuthLock(context.TODO(), &AuthLockRequest{})
-	require.NoError(t, err)
-}
-
-func testAuthUnlock(t *testing.T, service *service) {
-	_, err := service.AuthUnlock(context.TODO(), &AuthUnlockRequest{
-		Secret: authPassword,
-		Type:   PasswordAuth,
-		Client: "test",
+		Email:    email,
+		Password: password,
 	})
 	require.NoError(t, err)
 }
@@ -203,24 +171,4 @@ func (t *testEmailer) SentVerificationEmail(email string) string {
 func (t *testEmailer) SendVerificationEmail(email string, code string) error {
 	t.sentVerificationEmail[email] = code
 	return nil
-}
-
-func TestServiceCheck(t *testing.T) {
-	// SetLogger(NewLogger(DebugLevel))
-	// vault.SetLogger(NewLogger(DebugLevel))
-	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
-	defer closeFn()
-
-	testAuthSetup(t, service)
-	require.True(t, service.checking)
-
-	testAuthLock(t, service)
-	require.False(t, service.checking)
-
-	testAuthUnlock(t, service)
-	require.True(t, service.checking)
-
-	testAuthLock(t, service)
-	require.False(t, service.checking)
 }

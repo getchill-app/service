@@ -12,7 +12,7 @@ func TestSigchain(t *testing.T) {
 	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
-	testAuthSetup(t, service)
+	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
 	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 

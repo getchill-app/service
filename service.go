@@ -6,7 +6,7 @@ import (
 
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/auth/fido2"
-	hclient "github.com/keys-pub/keys-ext/http/client"
+	kclient "github.com/keys-pub/keys-ext/http/client"
 	"github.com/keys-pub/keys-ext/sqlcipher"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/keys-pub/keys/users"
@@ -14,6 +14,7 @@ import (
 	"github.com/keys-pub/vault/auth"
 	vclient "github.com/keys-pub/vault/client"
 
+	"github.com/getchill-app/http/client"
 	"github.com/getchill-app/messaging"
 )
 
@@ -27,7 +28,8 @@ type service struct {
 	vault *vault.Vault
 
 	db      *sqlcipher.DB
-	hclient *hclient.Client
+	client  *client.Client
+	kclient *kclient.Client
 	vclient *vclient.Client
 	scs     *keys.Sigchains
 	users   *users.Users
@@ -74,20 +76,25 @@ func newService(
 	}
 	vault.SetFIDO2Plugin(fido2Plugin)
 
-	hclient, err := hclient.New(env.KeysPubServerURL())
+	kclient, err := kclient.New(env.KeysPubServerURL())
 	if err != nil {
 		return nil, err
 	}
-	hclient.SetClock(clock)
+	kclient.SetClock(clock)
 
 	db := sqlcipher.New()
 	db.SetClock(clock)
 	scs := keys.NewSigchains(db)
-	usrs := users.New(db, scs, users.HTTPClient(hclient.HTTPClient()), users.Clock(clock))
+	usrs := users.New(db, scs, users.HTTPClient(kclient.HTTPClient()), users.Clock(clock))
 
 	relay := newRelay()
 
 	messenger := messaging.NewMessenger(vault)
+	client, err := client.New(env.ChillServerURL())
+	client.SetClock(clock)
+	if err != nil {
+		return nil, err
+	}
 
 	return &service{
 		authIr:        authIr,
@@ -96,7 +103,8 @@ func newService(
 		scs:           scs,
 		users:         usrs,
 		db:            db,
-		hclient:       hclient,
+		client:        client,
+		kclient:       kclient,
 		vclient:       vclient,
 		vault:         vault,
 		relay:         relay,
@@ -107,7 +115,7 @@ func newService(
 }
 
 func (s *service) Close() {
-	if _, err := s.AuthLock(context.TODO(), &AuthLockRequest{}); err != nil {
+	if err := s.authLock(context.TODO()); err != nil {
 		logger.Warningf("Failed to lock: %v", err)
 	}
 }

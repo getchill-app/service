@@ -5,23 +5,28 @@ import (
 	"testing"
 
 	"github.com/keys-pub/keys"
-	"github.com/keys-pub/vault"
-	"github.com/keys-pub/vault/client"
 	"github.com/keys-pub/vault/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestChannel(t *testing.T) {
-	SetLogger(NewLogger(DebugLevel))
-	client.SetLogger(NewLogger(DebugLevel))
-	vault.SetLogger(NewLogger(DebugLevel))
+	// SetLogger(NewLogger(DebugLevel))
+	// client.SetLogger(NewLogger(DebugLevel))
+	// vault.SetLogger(NewLogger(DebugLevel))
 
 	env := newTestServerEnv(t)
 
 	aliceService, aliceCloseFn := newTestService(t, env)
 	defer aliceCloseFn()
 	ck := keys.NewEdX25519KeyFromSeed(testutil.Seed(0xa0))
-	testAccountCreate(t, aliceService, "alice@keys.pub", alice, ck)
+	_, err := aliceService.AccountCreate(context.TODO(), &AccountCreateRequest{
+		Email:      "alice@keys.pub",
+		Password:   "testpassword",
+		AccountKey: alice.PaperKey(),
+		ClientKey:  ck.PaperKey(),
+	})
+	require.NoError(t, err)
+
 	ctx := context.TODO()
 	testUserSetupGithub(t, env, aliceService, alice, "alice")
 

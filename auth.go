@@ -24,13 +24,12 @@ type authInterceptor struct {
 func newAuthInterceptor() *authInterceptor {
 	// We don't need auth for the following methods.
 	allowlist := dstore.NewStringSet(
-		"/service.RPC/AuthSetup",
+		"/service.RPC/AccountCreate",
 		"/service.RPC/AuthUnlock",
 		"/service.RPC/AuthLock",
-		"/service.RPC/Status",
+		"/service.RPC/AuthStatus",
 		"/service.RPC/Rand",
 		"/service.RPC/RandPassword",
-		"/service.RPC/AccountCreate",
 	)
 
 	return &authInterceptor{

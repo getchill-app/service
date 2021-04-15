@@ -9,18 +9,17 @@ option go_package=".;service";
 import "patch/go.proto";
 
 service RPC {      
-  // These requests do not need auth.
   // BEGIN NO AUTH
-  rpc AuthSetup(AuthSetupRequest) returns (AuthSetupResponse) {}
-  rpc AuthUnlock(AuthUnlockRequest) returns (AuthUnlockResponse) {}
-  rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {}
-  rpc AuthReset(AuthResetRequest) returns (AuthResetResponse) {}
-  rpc Status(StatusRequest) returns (StatusResponse) {}
-  
-  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}
+  // Rand
+  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {} 
+  rpc AuthUnlock(AuthUnlockRequest) returns (AuthUnlockResponse) {} 
+  rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {} 
+  rpc AuthStatus(AuthStatusRequest) returns (AuthStatusResponse) {}
   rpc Rand(RandRequest) returns (RandResponse) {}
   rpc RandPassword(RandPasswordRequest) returns (RandPasswordResponse) {}  
   // END NO AUTH  
+
+  rpc Status(StatusRequest) returns (StatusResponse) {}
 
   rpc KeyGenerate(KeyGenerateRequest) returns (KeyGenerateResponse) {}
   rpc Keys(KeysRequest) returns (KeysResponse) {}
@@ -42,13 +41,7 @@ service RPC {
   rpc Statement(StatementRequest) returns (StatementResponse) {}
   rpc StatementCreate(StatementCreateRequest) returns (StatementCreateResponse) {}  
   rpc StatementRevoke(StatementRevokeRequest) returns (StatementRevokeResponse) {}  
-
-  // Auth (edit)
-  rpc AuthProvision(AuthProvisionRequest) returns (AuthProvisionResponse) {}
-  rpc AuthDeprovision(AuthDeprovisionRequest) returns (AuthDeprovisionResponse) {}
-  rpc AuthProvisions(AuthProvisionsRequest) returns (AuthProvisionsResponse) {}  
-  rpc AuthPasswordChange(AuthPasswordChangeRequest) returns (AuthPasswordChangeResponse) {}  
-
+  
   // Channels
   rpc Channels(ChannelsRequest) returns (ChannelsResponse) {}
   rpc ChannelCreate(ChannelCreateRequest) returns (ChannelCreateResponse) {}
@@ -67,18 +60,28 @@ service RPC {
   // DB
   rpc Collections(CollectionsRequest) returns (CollectionsResponse) {}
   rpc Documents(DocumentsRequest) returns (DocumentsResponse) {}
+
+  // Org
+  rpc OrgKey(OrgKeyRequest) returns (OrgKeyResponse) {}
+  rpc OrgCreate(OrgCreateRequest) returns (OrgCreateResponse) {}
+  rpc OrgSign(OrgSignRequest) returns (OrgSignResponse) {}
 }
 
-enum AuthStatus {
-  option (go.enum) = {name: "AuthStatus"};
+
+message AccountCreateRequest {
+  string email = 1;
+  // Password registered.
+  string password = 2;
+  // Remember in keychain.
+  bool remember = 3;
+  // AccountKey is optional (generated if not specified).
+  string accountKey = 10;
+  // ClientKey is optional (generated if not specified).
+  string clientKey = 11;
   
-  AUTH_UNKNOWN = 0 [(go.value) = {name: "AuthUnknown"}];
-  // AuthSetupNeeded if setup needed.
-  AUTH_SETUP_NEEDED = 1 [(go.value) = {name: "AuthSetupNeeded"}];  
-  // AuthUnlocked if unlocked.
-  AUTH_UNLOCKED = 2 [(go.value) = {name: "AuthUnlocked"}];  
-  // AuthLocked if locked.
-  AUTH_LOCKED = 3 [(go.value) = {name: "AuthLocked"}];  
+}
+message AccountCreateResponse {
+  string authToken = 1;
 }
 
 enum AuthType {
@@ -92,16 +95,6 @@ enum AuthType {
   // FIDO2HMACSecretAuth uses a FIDO2 HMAC-Secret extension.
   FIDO2_HMAC_SECRET_AUTH = 20 [(go.value) = {name: "FIDO2HMACSecretAuth"}];
 }
-
-message AuthSetupRequest {
-  // Secret for auth depending on auth type, e.g. password, FIDO2 pin, etc.
-  string secret = 1;
-  // Type for auth.
-  AuthType type = 2;  
-  // Device path (for FIDO2).
-  string device = 5;
-}
-message AuthSetupResponse {}
 
 message AuthUnlockRequest {
   // Secret for auth depending on auth type, e.g. password, pin, etc.
@@ -119,25 +112,39 @@ message AuthUnlockResponse {
 message AuthLockRequest {}
 message AuthLockResponse {}
 
-message AuthResetRequest {
-  string appName = 1;
+enum AuthStatus {
+  option (go.enum) = {name: "AuthStatus"};
+
+  AUTH_UNKNOWN = 0 [(go.value) = {name: "AuthUnknown"}];
+  // AuthSetupNeeded if setup needed.
+  AUTH_SETUP_NEEDED = 1 [(go.value) = {name: "AuthSetupNeeded"}];  
+  // AuthUnlocked if unlocked.
+  AUTH_UNLOCKED = 2 [(go.value) = {name: "AuthUnlocked"}];  
+  // AuthLocked if locked.
+  AUTH_LOCKED = 3 [(go.value) = {name: "AuthLocked"}];  
 }
-message AuthResetResponse {}
+
+message AuthStatusRequest {}
+message AuthStatusResponse {
+  AuthStatus status = 1;
+}
 
 message StatusRequest {}
 message StatusResponse {
-  // Version of running service.
-  string version = 1;
-  // AppName app name.
-  string appName = 2;
-  // Exe is the service executable path.
-  string exe = 4;
-  // AuthStatus is the status of auth.
-  AuthStatus authStatus = 5;
-  // SyncStatus is the status of vault sync.
-  bool sync = 6;
-  // FIDO2 available.
-  bool fido2 = 20 [(go.field) = {name: "FIDO2"}];
+  // Account
+  Account account = 10;
+  // Org
+  Org org = 11;  
+}
+
+message Account {
+  string kid = 1 [(go.field) = {name: "KID"}];
+  string email = 2;
+}
+
+message Org {
+  string kid = 1 [(go.field) = {name: "KID"}];
+  string domain = 2;
 }
 
 message KeyGenerateRequest {
@@ -374,47 +381,6 @@ message RandPasswordResponse {
   string password = 1;
 }
 
-message AuthProvisionRequest {
-  // Secret for auth depending on auth type, e.g. password, phrase, FIDO2 pin, etc.
-  string secret = 1;
-  // Type for auth.
-  AuthType type = 2;
-  // Device path (for FIDO2).
-  string device = 5;
-  // Generate (for FIDO2 make credential).
-  bool generate = 7;
-}
-message AuthProvisionResponse {
-  AuthProvision provision = 1;
-}
-
-message AuthDeprovisionRequest {
-  string id = 1 [(go.field) = {name: "ID"}];
-}
-message AuthDeprovisionResponse {}
-
-message AuthPasswordChangeRequest {
-  string old = 1;
-  string new = 2;
-}
-message AuthPasswordChangeResponse {}
-
-message AuthProvision {
-  string id = 1 [(go.field) = {name: "ID"}];
-  AuthType type = 2;
-  int64 createdAt = 3;
-
-  // For FIDO2
-  // AAGUID is a device "identifier" (only unique across batches for privacy reasons).
-  string aaguid = 100 [(go.field) = {name: "AAGUID"}];
-  bool noPin = 101;
-}
-
-message AuthProvisionsRequest {}
-message AuthProvisionsResponse {
-  repeated AuthProvision provisions = 1;
-}
-
 message KeySearchRequest {
   string query = 1;  
 }
@@ -599,15 +565,23 @@ message DocumentsResponse {
   repeated Document documents = 1;
 }
 
-message AccountCreateRequest {
-  string email = 1;
-  // Password registered.
-  string password = 2;
-  // AccountKey is optional (generated if not specified).
-  string accountKey = 3;
-  // ClientKey is optional (generated if not specified).
-  string clientKey = 4;
+message OrgKeyRequest {
+  string domain = 1;
 }
-message AccountCreateResponse {
-  string authToken = 1;
+message OrgKeyResponse {
+  string kid = 1 [(go.field) = {name: "KID"}];
+  bool created = 2;
+  bool verified = 3;
 }
+
+message OrgSignRequest {
+  string domain = 1;
+}
+message OrgSignResponse {
+  string sig = 1;
+}
+
+message OrgCreateRequest {
+  string domain = 1;
+}
+message OrgCreateResponse {}

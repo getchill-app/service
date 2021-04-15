@@ -12,7 +12,7 @@ func TestUserAddGithub(t *testing.T) {
 	env := newTestServerEnv(t)
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
-	testAuthSetup(t, service)
+	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
 
 	testImportKey(t, service, bob)
 

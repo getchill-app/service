@@ -61,7 +61,7 @@ func (s *service) User(ctx context.Context, req *UserRequest) (*UserResponse, er
 		user = userResultToRPC(res)
 	} else {
 		if !req.Local {
-			resp, err := s.hclient.User(ctx, kid)
+			resp, err := s.kclient.User(ctx, kid)
 			if err != nil {
 				return nil, err
 			}
@@ -114,23 +114,16 @@ func (s *service) UserSign(ctx context.Context, req *UserSignRequest) (*UserSign
 	if req.Service == "" {
 		return nil, errors.Errorf("no service specified")
 	}
-	kid, err := keys.ParseID(req.KID)
+	key, err := s.edx25519Key(req.KID)
 	if err != nil {
 		return nil, err
-	}
-	key, err := s.vault.Keyring().Key(kid)
-	if err != nil {
-		return nil, err
-	}
-	if !key.IsEdX25519() {
-		return nil, errors.Errorf("invalid key type")
 	}
 
-	user, err := user.NewForSigning(key.ID, req.Service, req.Name)
+	user, err := user.NewForSigning(key.ID(), req.Service, req.Name)
 	if err != nil {
 		return nil, err
 	}
-	msg, err := user.Sign(key.AsEdX25519())
+	msg, err := user.Sign(key)
 	if err != nil {
 		return nil, err
 	}
@@ -155,19 +148,12 @@ func (s *service) UserAdd(ctx context.Context, req *UserAddRequest) (*UserAddRes
 	if req.URL == "" {
 		return nil, errors.Errorf("no URL specified")
 	}
-	kid, err := keys.ParseID(req.KID)
+	key, err := s.edx25519Key(req.KID)
 	if err != nil {
 		return nil, err
-	}
-	key, err := s.vault.Keyring().Key(kid)
-	if err != nil {
-		return nil, err
-	}
-	if !key.IsEdX25519() {
-		return nil, errors.Errorf("invalid key type")
 	}
 
-	user, st, err := s.sigchainUserAdd(ctx, key.AsEdX25519(), req.Service, req.Name, req.URL, req.Local)
+	user, st, err := s.sigchainUserAdd(ctx, key, req.Service, req.Name, req.URL, req.Local)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +205,7 @@ func (s *service) sigchainUserAdd(ctx context.Context, key *keys.EdX25519Key, se
 	}
 
 	if !localOnly {
-		err := s.hclient.SigchainSave(ctx, st)
+		err := s.kclient.SigchainSave(ctx, st)
 		if err != nil {
 			// TODO: Test this error response
 			var rerr client.Error
@@ -353,7 +339,7 @@ func (s *service) searchUsersLocal(ctx context.Context, query string, limit int)
 func (s *service) searchUsersRemote(ctx context.Context, query string, limit int) ([]*api.User, error) {
 	query = strings.TrimSpace(query)
 	logger.Infof("Search users remote %q", query)
-	resp, err := s.hclient.UserSearch(ctx, query, limit)
+	resp, err := s.kclient.UserSearch(ctx, query, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +379,7 @@ func (s *service) updateUser(ctx context.Context, kid keys.ID, allowProxyCache b
 	logger.Infof("Update user %s", kid)
 
 	// TODO: Only get new sigchain entries.
-	resp, err := s.hclient.Sigchain(ctx, kid)
+	resp, err := s.kclient.Sigchain(ctx, kid)
 	if err != nil {
 		return nil, err
 	}

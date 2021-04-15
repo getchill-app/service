@@ -17,16 +17,15 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RPCClient interface {
-	// These requests do not need auth.
 	// BEGIN NO AUTH
-	AuthSetup(ctx context.Context, in *AuthSetupRequest, opts ...grpc.CallOption) (*AuthSetupResponse, error)
+	// Rand
+	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
 	AuthUnlock(ctx context.Context, in *AuthUnlockRequest, opts ...grpc.CallOption) (*AuthUnlockResponse, error)
 	AuthLock(ctx context.Context, in *AuthLockRequest, opts ...grpc.CallOption) (*AuthLockResponse, error)
-	AuthReset(ctx context.Context, in *AuthResetRequest, opts ...grpc.CallOption) (*AuthResetResponse, error)
-	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
-	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
+	AuthStatus(ctx context.Context, in *AuthStatusRequest, opts ...grpc.CallOption) (*AuthStatusResponse, error)
 	Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error)
 	RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error)
+	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	KeyGenerate(ctx context.Context, in *KeyGenerateRequest, opts ...grpc.CallOption) (*KeyGenerateResponse, error)
 	Keys(ctx context.Context, in *KeysRequest, opts ...grpc.CallOption) (*KeysResponse, error)
 	Key(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*KeyResponse, error)
@@ -44,11 +43,6 @@ type RPCClient interface {
 	Statement(ctx context.Context, in *StatementRequest, opts ...grpc.CallOption) (*StatementResponse, error)
 	StatementCreate(ctx context.Context, in *StatementCreateRequest, opts ...grpc.CallOption) (*StatementCreateResponse, error)
 	StatementRevoke(ctx context.Context, in *StatementRevokeRequest, opts ...grpc.CallOption) (*StatementRevokeResponse, error)
-	// Auth (edit)
-	AuthProvision(ctx context.Context, in *AuthProvisionRequest, opts ...grpc.CallOption) (*AuthProvisionResponse, error)
-	AuthDeprovision(ctx context.Context, in *AuthDeprovisionRequest, opts ...grpc.CallOption) (*AuthDeprovisionResponse, error)
-	AuthProvisions(ctx context.Context, in *AuthProvisionsRequest, opts ...grpc.CallOption) (*AuthProvisionsResponse, error)
-	AuthPasswordChange(ctx context.Context, in *AuthPasswordChangeRequest, opts ...grpc.CallOption) (*AuthPasswordChangeResponse, error)
 	// Channels
 	Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error)
 	ChannelCreate(ctx context.Context, in *ChannelCreateRequest, opts ...grpc.CallOption) (*ChannelCreateResponse, error)
@@ -64,6 +58,10 @@ type RPCClient interface {
 	// DB
 	Collections(ctx context.Context, in *CollectionsRequest, opts ...grpc.CallOption) (*CollectionsResponse, error)
 	Documents(ctx context.Context, in *DocumentsRequest, opts ...grpc.CallOption) (*DocumentsResponse, error)
+	// Org
+	OrgKey(ctx context.Context, in *OrgKeyRequest, opts ...grpc.CallOption) (*OrgKeyResponse, error)
+	OrgCreate(ctx context.Context, in *OrgCreateRequest, opts ...grpc.CallOption) (*OrgCreateResponse, error)
+	OrgSign(ctx context.Context, in *OrgSignRequest, opts ...grpc.CallOption) (*OrgSignResponse, error)
 }
 
 type rPCClient struct {
@@ -74,9 +72,9 @@ func NewRPCClient(cc grpc.ClientConnInterface) RPCClient {
 	return &rPCClient{cc}
 }
 
-func (c *rPCClient) AuthSetup(ctx context.Context, in *AuthSetupRequest, opts ...grpc.CallOption) (*AuthSetupResponse, error) {
-	out := new(AuthSetupResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AuthSetup", in, out, opts...)
+func (c *rPCClient) AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error) {
+	out := new(AccountCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountCreate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,27 +99,9 @@ func (c *rPCClient) AuthLock(ctx context.Context, in *AuthLockRequest, opts ...g
 	return out, nil
 }
 
-func (c *rPCClient) AuthReset(ctx context.Context, in *AuthResetRequest, opts ...grpc.CallOption) (*AuthResetResponse, error) {
-	out := new(AuthResetResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AuthReset", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
-	out := new(StatusResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/Status", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error) {
-	out := new(AccountCreateResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AccountCreate", in, out, opts...)
+func (c *rPCClient) AuthStatus(ctx context.Context, in *AuthStatusRequest, opts ...grpc.CallOption) (*AuthStatusResponse, error) {
+	out := new(AuthStatusResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AuthStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +120,15 @@ func (c *rPCClient) Rand(ctx context.Context, in *RandRequest, opts ...grpc.Call
 func (c *rPCClient) RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error) {
 	out := new(RandPasswordResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/RandPassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/Status", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -299,42 +288,6 @@ func (c *rPCClient) StatementRevoke(ctx context.Context, in *StatementRevokeRequ
 	return out, nil
 }
 
-func (c *rPCClient) AuthProvision(ctx context.Context, in *AuthProvisionRequest, opts ...grpc.CallOption) (*AuthProvisionResponse, error) {
-	out := new(AuthProvisionResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AuthProvision", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) AuthDeprovision(ctx context.Context, in *AuthDeprovisionRequest, opts ...grpc.CallOption) (*AuthDeprovisionResponse, error) {
-	out := new(AuthDeprovisionResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AuthDeprovision", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) AuthProvisions(ctx context.Context, in *AuthProvisionsRequest, opts ...grpc.CallOption) (*AuthProvisionsResponse, error) {
-	out := new(AuthProvisionsResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AuthProvisions", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) AuthPasswordChange(ctx context.Context, in *AuthPasswordChangeRequest, opts ...grpc.CallOption) (*AuthPasswordChangeResponse, error) {
-	out := new(AuthPasswordChangeResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AuthPasswordChange", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *rPCClient) Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error) {
 	out := new(ChannelsResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/Channels", in, out, opts...)
@@ -457,20 +410,46 @@ func (c *rPCClient) Documents(ctx context.Context, in *DocumentsRequest, opts ..
 	return out, nil
 }
 
+func (c *rPCClient) OrgKey(ctx context.Context, in *OrgKeyRequest, opts ...grpc.CallOption) (*OrgKeyResponse, error) {
+	out := new(OrgKeyResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/OrgKey", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) OrgCreate(ctx context.Context, in *OrgCreateRequest, opts ...grpc.CallOption) (*OrgCreateResponse, error) {
+	out := new(OrgCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/OrgCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) OrgSign(ctx context.Context, in *OrgSignRequest, opts ...grpc.CallOption) (*OrgSignResponse, error) {
+	out := new(OrgSignResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/OrgSign", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RPCServer is the server API for RPC service.
 // All implementations must embed UnimplementedRPCServer
 // for forward compatibility
 type RPCServer interface {
-	// These requests do not need auth.
 	// BEGIN NO AUTH
-	AuthSetup(context.Context, *AuthSetupRequest) (*AuthSetupResponse, error)
+	// Rand
+	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
 	AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error)
 	AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error)
-	AuthReset(context.Context, *AuthResetRequest) (*AuthResetResponse, error)
-	Status(context.Context, *StatusRequest) (*StatusResponse, error)
-	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
+	AuthStatus(context.Context, *AuthStatusRequest) (*AuthStatusResponse, error)
 	Rand(context.Context, *RandRequest) (*RandResponse, error)
 	RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error)
+	Status(context.Context, *StatusRequest) (*StatusResponse, error)
 	KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error)
 	Keys(context.Context, *KeysRequest) (*KeysResponse, error)
 	Key(context.Context, *KeyRequest) (*KeyResponse, error)
@@ -488,11 +467,6 @@ type RPCServer interface {
 	Statement(context.Context, *StatementRequest) (*StatementResponse, error)
 	StatementCreate(context.Context, *StatementCreateRequest) (*StatementCreateResponse, error)
 	StatementRevoke(context.Context, *StatementRevokeRequest) (*StatementRevokeResponse, error)
-	// Auth (edit)
-	AuthProvision(context.Context, *AuthProvisionRequest) (*AuthProvisionResponse, error)
-	AuthDeprovision(context.Context, *AuthDeprovisionRequest) (*AuthDeprovisionResponse, error)
-	AuthProvisions(context.Context, *AuthProvisionsRequest) (*AuthProvisionsResponse, error)
-	AuthPasswordChange(context.Context, *AuthPasswordChangeRequest) (*AuthPasswordChangeResponse, error)
 	// Channels
 	Channels(context.Context, *ChannelsRequest) (*ChannelsResponse, error)
 	ChannelCreate(context.Context, *ChannelCreateRequest) (*ChannelCreateResponse, error)
@@ -508,6 +482,10 @@ type RPCServer interface {
 	// DB
 	Collections(context.Context, *CollectionsRequest) (*CollectionsResponse, error)
 	Documents(context.Context, *DocumentsRequest) (*DocumentsResponse, error)
+	// Org
+	OrgKey(context.Context, *OrgKeyRequest) (*OrgKeyResponse, error)
+	OrgCreate(context.Context, *OrgCreateRequest) (*OrgCreateResponse, error)
+	OrgSign(context.Context, *OrgSignRequest) (*OrgSignResponse, error)
 	mustEmbedUnimplementedRPCServer()
 }
 
@@ -515,8 +493,8 @@ type RPCServer interface {
 type UnimplementedRPCServer struct {
 }
 
-func (*UnimplementedRPCServer) AuthSetup(context.Context, *AuthSetupRequest) (*AuthSetupResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthSetup not implemented")
+func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountCreate not implemented")
 }
 func (*UnimplementedRPCServer) AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthUnlock not implemented")
@@ -524,20 +502,17 @@ func (*UnimplementedRPCServer) AuthUnlock(context.Context, *AuthUnlockRequest) (
 func (*UnimplementedRPCServer) AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthLock not implemented")
 }
-func (*UnimplementedRPCServer) AuthReset(context.Context, *AuthResetRequest) (*AuthResetResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthReset not implemented")
-}
-func (*UnimplementedRPCServer) Status(context.Context, *StatusRequest) (*StatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
-}
-func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AccountCreate not implemented")
+func (*UnimplementedRPCServer) AuthStatus(context.Context, *AuthStatusRequest) (*AuthStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthStatus not implemented")
 }
 func (*UnimplementedRPCServer) Rand(context.Context, *RandRequest) (*RandResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Rand not implemented")
 }
 func (*UnimplementedRPCServer) RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RandPassword not implemented")
+}
+func (*UnimplementedRPCServer) Status(context.Context, *StatusRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
 func (*UnimplementedRPCServer) KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeyGenerate not implemented")
@@ -590,18 +565,6 @@ func (*UnimplementedRPCServer) StatementCreate(context.Context, *StatementCreate
 func (*UnimplementedRPCServer) StatementRevoke(context.Context, *StatementRevokeRequest) (*StatementRevokeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StatementRevoke not implemented")
 }
-func (*UnimplementedRPCServer) AuthProvision(context.Context, *AuthProvisionRequest) (*AuthProvisionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthProvision not implemented")
-}
-func (*UnimplementedRPCServer) AuthDeprovision(context.Context, *AuthDeprovisionRequest) (*AuthDeprovisionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthDeprovision not implemented")
-}
-func (*UnimplementedRPCServer) AuthProvisions(context.Context, *AuthProvisionsRequest) (*AuthProvisionsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthProvisions not implemented")
-}
-func (*UnimplementedRPCServer) AuthPasswordChange(context.Context, *AuthPasswordChangeRequest) (*AuthPasswordChangeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthPasswordChange not implemented")
-}
 func (*UnimplementedRPCServer) Channels(context.Context, *ChannelsRequest) (*ChannelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Channels not implemented")
 }
@@ -635,26 +598,35 @@ func (*UnimplementedRPCServer) Collections(context.Context, *CollectionsRequest)
 func (*UnimplementedRPCServer) Documents(context.Context, *DocumentsRequest) (*DocumentsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Documents not implemented")
 }
+func (*UnimplementedRPCServer) OrgKey(context.Context, *OrgKeyRequest) (*OrgKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OrgKey not implemented")
+}
+func (*UnimplementedRPCServer) OrgCreate(context.Context, *OrgCreateRequest) (*OrgCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OrgCreate not implemented")
+}
+func (*UnimplementedRPCServer) OrgSign(context.Context, *OrgSignRequest) (*OrgSignResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OrgSign not implemented")
+}
 func (*UnimplementedRPCServer) mustEmbedUnimplementedRPCServer() {}
 
 func RegisterRPCServer(s *grpc.Server, srv RPCServer) {
 	s.RegisterService(&_RPC_serviceDesc, srv)
 }
 
-func _RPC_AuthSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthSetupRequest)
+func _RPC_AccountCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountCreateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RPCServer).AuthSetup(ctx, in)
+		return srv.(RPCServer).AccountCreate(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/service.RPC/AuthSetup",
+		FullMethod: "/service.RPC/AccountCreate",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AuthSetup(ctx, req.(*AuthSetupRequest))
+		return srv.(RPCServer).AccountCreate(ctx, req.(*AccountCreateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -695,56 +667,20 @@ func _RPC_AuthLock_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RPC_AuthReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthResetRequest)
+func _RPC_AuthStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RPCServer).AuthReset(ctx, in)
+		return srv.(RPCServer).AuthStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/service.RPC/AuthReset",
+		FullMethod: "/service.RPC/AuthStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AuthReset(ctx, req.(*AuthResetRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).Status(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/Status",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).Status(ctx, req.(*StatusRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_AccountCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AccountCreateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AccountCreate(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AccountCreate",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AccountCreate(ctx, req.(*AccountCreateRequest))
+		return srv.(RPCServer).AuthStatus(ctx, req.(*AuthStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -781,6 +717,24 @@ func _RPC_RandPassword_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RPCServer).RandPassword(ctx, req.(*RandPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).Status(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/Status",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).Status(ctx, req.(*StatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1091,78 +1045,6 @@ func _RPC_StatementRevoke_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RPC_AuthProvision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthProvisionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AuthProvision(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AuthProvision",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AuthProvision(ctx, req.(*AuthProvisionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_AuthDeprovision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthDeprovisionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AuthDeprovision(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AuthDeprovision",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AuthDeprovision(ctx, req.(*AuthDeprovisionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_AuthProvisions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthProvisionsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AuthProvisions(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AuthProvisions",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AuthProvisions(ctx, req.(*AuthProvisionsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_AuthPasswordChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthPasswordChangeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AuthPasswordChange(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AuthPasswordChange",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AuthPasswordChange(ctx, req.(*AuthPasswordChangeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RPC_Channels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ChannelsRequest)
 	if err := dec(in); err != nil {
@@ -1364,13 +1246,67 @@ func _RPC_Documents_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RPC_OrgKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrgKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).OrgKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/OrgKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).OrgKey(ctx, req.(*OrgKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_OrgCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrgCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).OrgCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/OrgCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).OrgCreate(ctx, req.(*OrgCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_OrgSign_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrgSignRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).OrgSign(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/OrgSign",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).OrgSign(ctx, req.(*OrgSignRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _RPC_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "service.RPC",
 	HandlerType: (*RPCServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AuthSetup",
-			Handler:    _RPC_AuthSetup_Handler,
+			MethodName: "AccountCreate",
+			Handler:    _RPC_AccountCreate_Handler,
 		},
 		{
 			MethodName: "AuthUnlock",
@@ -1381,16 +1317,8 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_AuthLock_Handler,
 		},
 		{
-			MethodName: "AuthReset",
-			Handler:    _RPC_AuthReset_Handler,
-		},
-		{
-			MethodName: "Status",
-			Handler:    _RPC_Status_Handler,
-		},
-		{
-			MethodName: "AccountCreate",
-			Handler:    _RPC_AccountCreate_Handler,
+			MethodName: "AuthStatus",
+			Handler:    _RPC_AuthStatus_Handler,
 		},
 		{
 			MethodName: "Rand",
@@ -1399,6 +1327,10 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RandPassword",
 			Handler:    _RPC_RandPassword_Handler,
+		},
+		{
+			MethodName: "Status",
+			Handler:    _RPC_Status_Handler,
 		},
 		{
 			MethodName: "KeyGenerate",
@@ -1469,22 +1401,6 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_StatementRevoke_Handler,
 		},
 		{
-			MethodName: "AuthProvision",
-			Handler:    _RPC_AuthProvision_Handler,
-		},
-		{
-			MethodName: "AuthDeprovision",
-			Handler:    _RPC_AuthDeprovision_Handler,
-		},
-		{
-			MethodName: "AuthProvisions",
-			Handler:    _RPC_AuthProvisions_Handler,
-		},
-		{
-			MethodName: "AuthPasswordChange",
-			Handler:    _RPC_AuthPasswordChange_Handler,
-		},
-		{
 			MethodName: "Channels",
 			Handler:    _RPC_Channels_Handler,
 		},
@@ -1523,6 +1439,18 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Documents",
 			Handler:    _RPC_Documents_Handler,
+		},
+		{
+			MethodName: "OrgKey",
+			Handler:    _RPC_OrgKey_Handler,
+		},
+		{
+			MethodName: "OrgCreate",
+			Handler:    _RPC_OrgCreate_Handler,
+		},
+		{
+			MethodName: "OrgSign",
+			Handler:    _RPC_OrgSign_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -5,17 +5,16 @@ import (
 
 	"github.com/keys-pub/keys"
 	kapi "github.com/keys-pub/keys/api"
-	"github.com/keys-pub/vault"
 	"github.com/pkg/errors"
 )
 
 func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) (*AccountCreateResponse, error) {
-	logger.Infof("Auth setup...")
-	if s.vault.Status() != vault.SetupNeeded {
-		return nil, errors.Errorf("already setup")
+	logger.Debugf("Creating account...")
+
+	if req.Password == "" {
+		return nil, errors.Errorf("empty password")
 	}
 
-	logger.Debugf("Creating account...")
 	var accountKey *keys.EdX25519Key
 	if req.AccountKey != "" {
 		a, err := keys.NewEdX25519KeyFromPaperKey(req.AccountKey)
@@ -32,7 +31,7 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 
 	logger.Debugf("Registering client key...")
 	var clientKey *keys.EdX25519Key
-	if req.AccountKey != "" {
+	if req.ClientKey != "" {
 		c, err := keys.NewEdX25519KeyFromPaperKey(req.ClientKey)
 		if err != nil {
 			return nil, err
@@ -52,36 +51,32 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 		return nil, err
 	}
 
-	unlock, mk, err := s.authUnlock(ctx, &AuthUnlockRequest{Secret: paperKey, Type: PaperKeyAuth})
+	token, mk, err := s.authUnlock(ctx, paperKey, PaperKeyAuth, "")
 	if err != nil {
 		return nil, err
 	}
 
 	logger.Debugf("Saving account key...")
 	ak := kapi.NewKey(accountKey).WithLabels("account").Created(s.clock.NowMillis())
-	if err := s.vault.Keyring().Set(ak); err != nil {
+	ak.Email = req.Email
+	if err := s.vault.Keyring().Save(ak); err != nil {
 		return nil, err
 	}
 
-	if req.Password != "" {
-		logger.Debugf("Registering password...")
-		if _, err := s.vault.RegisterPassword(mk, req.Password); err != nil {
-			return nil, err
-		}
+	logger.Debugf("Registering password...")
+	if _, err := s.vault.RegisterPassword(mk, req.Password); err != nil {
+		return nil, err
 	}
 
 	return &AccountCreateResponse{
-		AuthToken: unlock.AuthToken,
+		AuthToken: token,
 	}, nil
 }
 
-func (s *service) currentUser() (*kapi.Key, error) {
-	accountKeys, err := s.vault.Keyring().KeysWithLabel("account")
-	if err != nil {
-		return nil, err
-	}
-	if len(accountKeys) == 0 {
-		return nil, errors.Errorf("no current user")
-	}
-	return accountKeys[0], nil
+func (s *service) currentAccount() (*kapi.Key, error) {
+	return s.vault.Keyring().KeyWithLabel("account")
+}
+
+func (s *service) currentOrg() (*kapi.Key, error) {
+	return s.vault.Keyring().KeyWithLabel("org")
 }

@@ -16,7 +16,7 @@ func TestKeyExport(t *testing.T) {
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
-	testAuthSetup(t, service)
+	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
 
 	genResp, err := service.KeyGenerate(ctx, &KeyGenerateRequest{Type: string(keys.EdX25519)})
 	require.NoError(t, err)
@@ -77,7 +77,7 @@ func TestKeySSHExport(t *testing.T) {
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
-	testAuthSetup(t, service)
+	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
 
 	genResp, err := service.KeyGenerate(ctx, &KeyGenerateRequest{Type: string(keys.EdX25519)})
 	require.NoError(t, err)

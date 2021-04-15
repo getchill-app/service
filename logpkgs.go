@@ -1,7 +1,7 @@
 package service
 
 import (
-	hclient "github.com/getchill-app/http-client"
+	hclient "github.com/getchill-app/http/client"
 	"github.com/getchill-app/messaging"
 	wsclient "github.com/getchill-app/ws/client"
 	"github.com/keys-pub/keys"
