@@ -70,25 +70,36 @@ func newTestServerEnv(t *testing.T) *testServerEnv {
 	}
 }
 
-func newTestService(t *testing.T, serverEnv *testServerEnv) (*service, CloseFn) {
-	keysPubServerEnv := newTestKeysPubServerEnv(t, serverEnv)
-	chillServerEnv := newTestChillServerEnv(t, serverEnv)
+type serviceEnv struct {
+	service        *service
+	getChillAppEnv *testHTTPServerEnv
+	keysPubEnv     *testHTTPServerEnv
+}
+
+func newTestServiceEnv(t *testing.T, serverEnv *testServerEnv) (*serviceEnv, CloseFn) {
+	keysPubEnv := newTestKeysPubServerEnv(t, serverEnv)
+	getChillAppEnv := newTestChillServerEnv(t, serverEnv)
 	appName := "KeysTest-" + randName()
 
-	env, closeFn := newEnv(t, appName, keysPubServerEnv.url, chillServerEnv.url)
+	env, closeFn := newEnv(t, appName, keysPubEnv.url, getChillAppEnv.url)
 	auth := newAuthInterceptor()
 
 	svc, err := newService(env, Build{Version: "1.2.3", Commit: "deadbeef"}, auth, nil, serverEnv.clock)
 	require.NoError(t, err)
 
 	closeServiceFn := func() {
-		keysPubServerEnv.closeFn()
-		chillServerEnv.closeFn()
+		keysPubEnv.closeFn()
+		getChillAppEnv.closeFn()
 		svc.Close()
 		closeFn()
 	}
 
-	return svc, closeServiceFn
+	return &serviceEnv{service: svc, getChillAppEnv: getChillAppEnv, keysPubEnv: keysPubEnv}, closeServiceFn
+}
+
+func newTestService(t *testing.T, serverEnv *testServerEnv) (*service, CloseFn) {
+	serviceEnv, closeFn := newTestServiceEnv(t, serverEnv)
+	return serviceEnv.service, closeFn
 }
 
 func testAccountSetup(t *testing.T, env *testServerEnv, service *service, email string, password string, account *keys.EdX25519Key) {
@@ -135,6 +146,7 @@ func testOrgCreate(t *testing.T, env *testServerEnv, service *service) {
 
 type testHTTPServerEnv struct {
 	url     string
+	emailer *testEmailer
 	closeFn func()
 }
 
@@ -149,8 +161,6 @@ func newTestKeysPubServerEnv(t *testing.T, env *testServerEnv) *testHTTPServerEn
 	require.NoError(t, err)
 	err = srv.SetTokenKey("f41deca7f9ef4f82e53cd7351a90bc370e2bf15ed74d147226439cfde740ac18")
 	require.NoError(t, err)
-	emailer := newTestEmailer()
-	srv.SetEmailer(emailer)
 
 	handler := kpserver.NewHandler(srv)
 	testServer := httptest.NewServer(handler)
@@ -185,6 +195,7 @@ func newTestChillServerEnv(t *testing.T, env *testServerEnv) *testHTTPServerEnv 
 	}
 	return &testHTTPServerEnv{
 		url:     srv.URL,
+		emailer: emailer,
 		closeFn: closeFn,
 	}
 }

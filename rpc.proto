@@ -12,14 +12,12 @@ service RPC {
   // BEGIN NO AUTH  
   rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {} 
   rpc AccountVerify(AccountVerifyRequest) returns (AccountVerifyResponse) {} 
+  rpc AccountStatus(AccountStatusRequest) returns (AccountStatusResponse) {}
   rpc AuthUnlock(AuthUnlockRequest) returns (AuthUnlockResponse) {} 
-  rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {} 
-  rpc AuthStatus(AuthStatusRequest) returns (AuthStatusResponse) {}
+  rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {}   
   rpc Rand(RandRequest) returns (RandResponse) {}
   rpc RandPassword(RandPasswordRequest) returns (RandPasswordResponse) {}  
   // END NO AUTH  
-
-  rpc Status(StatusRequest) returns (StatusResponse) {}
 
   rpc KeyGenerate(KeyGenerateRequest) returns (KeyGenerateResponse) {}
   rpc Keys(KeysRequest) returns (KeysResponse) {}
@@ -71,8 +69,7 @@ service RPC {
 }
 
 message AccountVerifyRequest {
-  string email = 1;
-  string code = 2;
+  string code = 1;
 }
 message AccountVerifyResponse {}
 
@@ -120,34 +117,26 @@ message AuthUnlockResponse {
 message AuthLockRequest {}
 message AuthLockResponse {}
 
-enum AuthStatus {
-  option (go.enum) = {name: "AuthStatus"};
+enum AccountStatus {
+  option (go.enum) = {name: "AccountStatus"};
 
-  AUTH_UNKNOWN = 0 [(go.value) = {name: "AuthUnknown"}];
-  // AuthSetupNeeded if setup needed.
-  AUTH_SETUP_NEEDED = 1 [(go.value) = {name: "AuthSetupNeeded"}];  
-  // AuthUnlocked if unlocked.
-  AUTH_UNLOCKED = 2 [(go.value) = {name: "AuthUnlocked"}];  
-  // AuthLocked if locked.
-  AUTH_LOCKED = 3 [(go.value) = {name: "AuthLocked"}];  
+  ACCOUNT_UNKNOWN = 0 [(go.value) = {name: "AccountUnknown"}];
+  ACCOUNT_SETUP_NEEDED = 1 [(go.value) = {name: "AccountSetupNeeded"}];  
+  ACCOUNT_UNVERIFIED = 2 [(go.value) = {name: "AccountUnverified"}];
+  ACCOUNT_ORG_NEEDED = 3 [(go.value) = {name: "AccountOrgNeeded"}];  
+  ACCOUNT_REGISTERED = 4 [(go.value) = {name: "AccountRegistered"}];  
+  ACCOUNT_LOCKED = 5 [(go.value) = {name: "AccountLocked"}];  
 }
 
-message AuthStatusRequest {}
-message AuthStatusResponse {
-  AuthStatus status = 1;
-}
-
-message StatusRequest {}
-message StatusResponse {
-  // Account
-  Account account = 10;
-  // Org
-  Org org = 11;  
+message AccountStatusRequest {}
+message AccountStatusResponse {
+  AccountStatus status = 1;
 }
 
 message Account {
   string kid = 1 [(go.field) = {name: "KID"}];
   string email = 2;
+  bool verified = 3;
 }
 
 message Org {
@@ -179,7 +168,6 @@ message Key {
   int32 sigchainLength = 40;
   int64 sigchainUpdatedAt = 41;
 }
-
 message KeyRequest {
   // Key can be kid or user@service.
   string key = 1;

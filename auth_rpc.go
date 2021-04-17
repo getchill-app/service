@@ -30,19 +30,6 @@ func authErr(err error, typ AuthType, wrap string) error {
 	return errors.Wrapf(err, wrap)
 }
 
-func (s *service) AuthStatus(ctx context.Context, req *AuthStatusRequest) (*AuthStatusResponse, error) {
-	switch s.vault.Status() {
-	case vault.SetupNeeded:
-		return &AuthStatusResponse{Status: AuthSetupNeeded}, nil
-	case vault.Unlocked:
-		return &AuthStatusResponse{Status: AuthUnlocked}, nil
-	case vault.Locked:
-		return &AuthStatusResponse{Status: AuthLocked}, nil
-	default:
-		return &AuthStatusResponse{Status: AuthUnknown}, nil
-	}
-}
-
 func (s *service) AuthUnlock(ctx context.Context, req *AuthUnlockRequest) (*AuthUnlockResponse, error) {
 	token, _, err := s.authUnlock(ctx, req.Secret, req.Type, req.Client)
 	if err != nil {

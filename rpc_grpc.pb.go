@@ -20,12 +20,11 @@ type RPCClient interface {
 	// BEGIN NO AUTH
 	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
 	AccountVerify(ctx context.Context, in *AccountVerifyRequest, opts ...grpc.CallOption) (*AccountVerifyResponse, error)
+	AccountStatus(ctx context.Context, in *AccountStatusRequest, opts ...grpc.CallOption) (*AccountStatusResponse, error)
 	AuthUnlock(ctx context.Context, in *AuthUnlockRequest, opts ...grpc.CallOption) (*AuthUnlockResponse, error)
 	AuthLock(ctx context.Context, in *AuthLockRequest, opts ...grpc.CallOption) (*AuthLockResponse, error)
-	AuthStatus(ctx context.Context, in *AuthStatusRequest, opts ...grpc.CallOption) (*AuthStatusResponse, error)
 	Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error)
 	RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error)
-	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	KeyGenerate(ctx context.Context, in *KeyGenerateRequest, opts ...grpc.CallOption) (*KeyGenerateResponse, error)
 	Keys(ctx context.Context, in *KeysRequest, opts ...grpc.CallOption) (*KeysResponse, error)
 	Key(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*KeyResponse, error)
@@ -92,6 +91,15 @@ func (c *rPCClient) AccountVerify(ctx context.Context, in *AccountVerifyRequest,
 	return out, nil
 }
 
+func (c *rPCClient) AccountStatus(ctx context.Context, in *AccountStatusRequest, opts ...grpc.CallOption) (*AccountStatusResponse, error) {
+	out := new(AccountStatusResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rPCClient) AuthUnlock(ctx context.Context, in *AuthUnlockRequest, opts ...grpc.CallOption) (*AuthUnlockResponse, error) {
 	out := new(AuthUnlockResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/AuthUnlock", in, out, opts...)
@@ -110,15 +118,6 @@ func (c *rPCClient) AuthLock(ctx context.Context, in *AuthLockRequest, opts ...g
 	return out, nil
 }
 
-func (c *rPCClient) AuthStatus(ctx context.Context, in *AuthStatusRequest, opts ...grpc.CallOption) (*AuthStatusResponse, error) {
-	out := new(AuthStatusResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AuthStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *rPCClient) Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error) {
 	out := new(RandResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/Rand", in, out, opts...)
@@ -131,15 +130,6 @@ func (c *rPCClient) Rand(ctx context.Context, in *RandRequest, opts ...grpc.Call
 func (c *rPCClient) RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error) {
 	out := new(RandPasswordResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/RandPassword", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
-	out := new(StatusResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/Status", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -473,12 +463,11 @@ type RPCServer interface {
 	// BEGIN NO AUTH
 	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
 	AccountVerify(context.Context, *AccountVerifyRequest) (*AccountVerifyResponse, error)
+	AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error)
 	AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error)
 	AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error)
-	AuthStatus(context.Context, *AuthStatusRequest) (*AuthStatusResponse, error)
 	Rand(context.Context, *RandRequest) (*RandResponse, error)
 	RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error)
-	Status(context.Context, *StatusRequest) (*StatusResponse, error)
 	KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error)
 	Keys(context.Context, *KeysRequest) (*KeysResponse, error)
 	Key(context.Context, *KeyRequest) (*KeyResponse, error)
@@ -530,23 +519,20 @@ func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequ
 func (*UnimplementedRPCServer) AccountVerify(context.Context, *AccountVerifyRequest) (*AccountVerifyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccountVerify not implemented")
 }
+func (*UnimplementedRPCServer) AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountStatus not implemented")
+}
 func (*UnimplementedRPCServer) AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthUnlock not implemented")
 }
 func (*UnimplementedRPCServer) AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthLock not implemented")
 }
-func (*UnimplementedRPCServer) AuthStatus(context.Context, *AuthStatusRequest) (*AuthStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthStatus not implemented")
-}
 func (*UnimplementedRPCServer) Rand(context.Context, *RandRequest) (*RandResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Rand not implemented")
 }
 func (*UnimplementedRPCServer) RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RandPassword not implemented")
-}
-func (*UnimplementedRPCServer) Status(context.Context, *StatusRequest) (*StatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
 func (*UnimplementedRPCServer) KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeyGenerate not implemented")
@@ -689,6 +675,24 @@ func _RPC_AccountVerify_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RPC_AccountStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountStatus(ctx, req.(*AccountStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RPC_AuthUnlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AuthUnlockRequest)
 	if err := dec(in); err != nil {
@@ -725,24 +729,6 @@ func _RPC_AuthLock_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RPC_AuthStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthStatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AuthStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AuthStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AuthStatus(ctx, req.(*AuthStatusRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RPC_Rand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RandRequest)
 	if err := dec(in); err != nil {
@@ -775,24 +761,6 @@ func _RPC_RandPassword_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RPCServer).RandPassword(ctx, req.(*RandPasswordRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).Status(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/Status",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).Status(ctx, req.(*StatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1407,6 +1375,10 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_AccountVerify_Handler,
 		},
 		{
+			MethodName: "AccountStatus",
+			Handler:    _RPC_AccountStatus_Handler,
+		},
+		{
 			MethodName: "AuthUnlock",
 			Handler:    _RPC_AuthUnlock_Handler,
 		},
@@ -1415,20 +1387,12 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_AuthLock_Handler,
 		},
 		{
-			MethodName: "AuthStatus",
-			Handler:    _RPC_AuthStatus_Handler,
-		},
-		{
 			MethodName: "Rand",
 			Handler:    _RPC_Rand_Handler,
 		},
 		{
 			MethodName: "RandPassword",
 			Handler:    _RPC_RandPassword_Handler,
-		},
-		{
-			MethodName: "Status",
-			Handler:    _RPC_Status_Handler,
 		},
 		{
 			MethodName: "KeyGenerate",
