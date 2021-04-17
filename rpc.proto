@@ -9,9 +9,9 @@ option go_package=".;service";
 import "patch/go.proto";
 
 service RPC {      
-  // BEGIN NO AUTH
-  // Rand
+  // BEGIN NO AUTH  
   rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {} 
+  rpc AccountVerify(AccountVerifyRequest) returns (AccountVerifyResponse) {} 
   rpc AuthUnlock(AuthUnlockRequest) returns (AuthUnlockResponse) {} 
   rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {} 
   rpc AuthStatus(AuthStatusRequest) returns (AuthStatusResponse) {}
@@ -48,7 +48,7 @@ service RPC {
   rpc ChannelInvite(ChannelInviteRequest) returns (ChannelInviteResponse) {}
   rpc ChannelLeave(ChannelLeaveRequest) returns (ChannelLeaveResponse) {}
   rpc ChannelRead(ChannelReadRequest) returns (ChannelReadResponse) {}
-
+  
   // Messages
   rpc MessagePrepare(MessagePrepareRequest) returns (MessagePrepareResponse) {}
   rpc MessageCreate(MessageCreateRequest) returns (MessageCreateResponse) {}
@@ -65,8 +65,16 @@ service RPC {
   rpc OrgKey(OrgKeyRequest) returns (OrgKeyResponse) {}
   rpc OrgCreate(OrgCreateRequest) returns (OrgCreateResponse) {}
   rpc OrgSign(OrgSignRequest) returns (OrgSignResponse) {}
+  rpc OrgInvites(OrgInvitesRequest) returns (OrgInvitesResponse) {}
+  rpc OrgInviteAccept(OrgInviteAcceptRequest) returns (OrgInviteAcceptResponse) {}
+
 }
 
+message AccountVerifyRequest {
+  string email = 1;
+  string code = 2;
+}
+message AccountVerifyResponse {}
 
 message AccountCreateRequest {
   string email = 1;
@@ -143,7 +151,7 @@ message Account {
 }
 
 message Org {
-  string kid = 1 [(go.field) = {name: "KID"}];
+  string id = 1 [(go.field) = {name: "ID"}];
   string domain = 2;
 }
 
@@ -497,11 +505,12 @@ message Channel {
 
 message ChannelsRequest {}
 message ChannelsResponse {
-  repeated Channel channels = 1;
+  repeated Channel channels = 1;  
 }
 
 message ChannelCreateRequest {
   string name = 1;
+  bool private = 2;
 }
 message ChannelCreateResponse {
   Channel channel = 1;
@@ -585,3 +594,18 @@ message OrgCreateRequest {
   string domain = 1;
 }
 message OrgCreateResponse {}
+
+message OrgInvite {
+  Org org = 1;
+  string invitedBy = 2;
+}
+
+message OrgInvitesRequest {}
+message OrgInvitesResponse {
+  repeated OrgInvite invites = 1;
+}
+
+message OrgInviteAcceptRequest {
+  string id = 1 [(go.field) = {name: "ID"}];
+}
+message OrgInviteAcceptResponse {}

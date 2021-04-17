@@ -91,10 +91,44 @@ func newTestService(t *testing.T, serverEnv *testServerEnv) (*service, CloseFn) 
 	return svc, closeServiceFn
 }
 
-func testAccountCreate(t *testing.T, service *service, email string, password string) {
-	_, err := service.AccountCreate(context.TODO(), &AccountCreateRequest{
+func testAccountSetup(t *testing.T, env *testServerEnv, service *service, email string, password string, account *keys.EdX25519Key) {
+	req := &AccountCreateRequest{
 		Email:    email,
 		Password: password,
+	}
+	if account != nil {
+		req.AccountKey = account.PaperKey()
+	}
+	_, err := service.AccountCreate(context.TODO(), req)
+	require.NoError(t, err)
+	testOrgCreate(t, env, service)
+}
+
+func testAccountCreate(t *testing.T, service *service, email string, password string) {
+	ctx := context.TODO()
+	req := &AccountCreateRequest{
+		Email:    email,
+		Password: password,
+	}
+	_, err := service.AccountCreate(ctx, req)
+	require.NoError(t, err)
+}
+
+func testOrgCreate(t *testing.T, env *testServerEnv, service *service) {
+	ctx := context.TODO()
+	_, err := service.OrgKey(ctx, &OrgKeyRequest{Domain: "test.domain"})
+	require.NoError(t, err)
+
+	resp, err := service.OrgSign(ctx, &OrgSignRequest{
+		Domain: "test.domain",
+	})
+	require.NoError(t, err)
+
+	env.client.SetProxy("https://test.domain/.well-known/getchill.txt", func(ctx context.Context, req *http.Request) http.ProxyResponse {
+		return http.ProxyResponse{Body: []byte(resp.Sig)}
+	})
+	_, err = service.OrgCreate(ctx, &OrgCreateRequest{
+		Domain: "test.domain",
 	})
 	require.NoError(t, err)
 }

@@ -22,7 +22,7 @@ func (s *service) MessagePrepare(ctx context.Context, req *MessagePrepareRequest
 		return nil, errors.Errorf("no channel specified")
 	}
 
-	account, err := s.currentAccount()
+	account, err := s.account(true)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) 
 		return &MessageCreateResponse{Message: msg}, nil
 	}
 
-	account, err := s.currentAccount()
+	account, err := s.account(true)
 	if err != nil {
 		return nil, err
 	}

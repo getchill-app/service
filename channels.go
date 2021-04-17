@@ -4,12 +4,19 @@ import (
 	"context"
 	"strings"
 
+	"github.com/getchill-app/http/client"
 	"github.com/getchill-app/messaging"
 	"github.com/keys-pub/keys"
+	"github.com/keys-pub/keys/api"
 	"github.com/pkg/errors"
 )
 
 func (s *service) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
+	// TODO: Move to channels init
+	// if err := s.importOrgChannels(ctx); err != nil {
+	// 	return nil, err
+	// }
+
 	status, err := s.messenger.ChannelStatuses()
 	if err != nil {
 		return nil, err
@@ -31,19 +38,37 @@ func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) 
 	if len(name) > 16 {
 		return nil, errors.Errorf("channel name too long (must be < 16)")
 	}
-	account, err := s.currentAccount()
+	account, err := s.account(true)
 	if err != nil {
 		return nil, err
 	}
-	logger.Debugf("Current account: %s", account.ID)
 
 	// Create channel key
 	channelKey := keys.GenerateEdX25519Key()
+	logger.Debugf("Creating channel %s", channelKey.ID())
 
-	logger.Debugf("Adding channel %s", channelKey.ID())
-	reg, err := s.messenger.AddChannel(ctx, channelKey, account.AsEdX25519())
-	if err != nil {
-		return nil, err
+	var channel *api.Key
+	if !req.Private {
+		org, err := s.org(true)
+		if err != nil {
+			return nil, err
+		}
+		vault, err := s.client.OrgCreateVault(ctx, org.AsEdX25519(), channelKey)
+		if err != nil {
+			return nil, err
+		}
+		key := api.NewKey(channelKey)
+		key.Token = vault.Token
+		if _, err := s.messenger.AddKey(key); err != nil {
+			return nil, err
+		}
+		channel = key
+	} else {
+		reg, err := s.messenger.AddChannel(ctx, channelKey, account.AsEdX25519())
+		if err != nil {
+			return nil, err
+		}
+		channel = reg
 	}
 
 	info := &messaging.ChannelInfo{Name: name}
@@ -54,7 +79,7 @@ func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) 
 	}
 
 	logger.Debugf("Relay...")
-	s.relay.Authorize([]string{reg.Token})
+	s.relay.Authorize([]string{channel.Token})
 	s.relay.Send(&RelayOutput{
 		Channel: channelKey.ID().String(),
 	})
@@ -102,4 +127,29 @@ func (s *service) ChannelLeave(ctx context.Context, req *ChannelLeaveRequest) (*
 	}
 
 	return &ChannelLeaveResponse{}, nil
+}
+
+func (s *service) importOrgChannels(ctx context.Context) error {
+	org, err := s.org(true)
+	if err != nil {
+		return err
+	}
+	resp, err := s.client.OrgVaults(ctx, org.AsEdX25519(), &client.OrgVaultsOpts{EncryptedKeys: true})
+	if err != nil {
+		return err
+	}
+
+	for _, vault := range resp.Vaults {
+		channel, err := client.DecryptKey(vault.EncryptedKey, org.AsEdX25519())
+		if err != nil {
+			return err
+		}
+		key := api.NewKey(channel)
+		key.Token = vault.Token
+		logger.Debugf("Import org key %s", key.ID)
+		if _, err := s.messenger.AddKey(key); err != nil {
+			return err
+		}
+	}
+	return nil
 }

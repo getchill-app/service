@@ -18,8 +18,8 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RPCClient interface {
 	// BEGIN NO AUTH
-	// Rand
 	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
+	AccountVerify(ctx context.Context, in *AccountVerifyRequest, opts ...grpc.CallOption) (*AccountVerifyResponse, error)
 	AuthUnlock(ctx context.Context, in *AuthUnlockRequest, opts ...grpc.CallOption) (*AuthUnlockResponse, error)
 	AuthLock(ctx context.Context, in *AuthLockRequest, opts ...grpc.CallOption) (*AuthLockResponse, error)
 	AuthStatus(ctx context.Context, in *AuthStatusRequest, opts ...grpc.CallOption) (*AuthStatusResponse, error)
@@ -62,6 +62,8 @@ type RPCClient interface {
 	OrgKey(ctx context.Context, in *OrgKeyRequest, opts ...grpc.CallOption) (*OrgKeyResponse, error)
 	OrgCreate(ctx context.Context, in *OrgCreateRequest, opts ...grpc.CallOption) (*OrgCreateResponse, error)
 	OrgSign(ctx context.Context, in *OrgSignRequest, opts ...grpc.CallOption) (*OrgSignResponse, error)
+	OrgInvites(ctx context.Context, in *OrgInvitesRequest, opts ...grpc.CallOption) (*OrgInvitesResponse, error)
+	OrgInviteAccept(ctx context.Context, in *OrgInviteAcceptRequest, opts ...grpc.CallOption) (*OrgInviteAcceptResponse, error)
 }
 
 type rPCClient struct {
@@ -75,6 +77,15 @@ func NewRPCClient(cc grpc.ClientConnInterface) RPCClient {
 func (c *rPCClient) AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error) {
 	out := new(AccountCreateResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/AccountCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AccountVerify(ctx context.Context, in *AccountVerifyRequest, opts ...grpc.CallOption) (*AccountVerifyResponse, error) {
+	out := new(AccountVerifyResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountVerify", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -437,13 +448,31 @@ func (c *rPCClient) OrgSign(ctx context.Context, in *OrgSignRequest, opts ...grp
 	return out, nil
 }
 
+func (c *rPCClient) OrgInvites(ctx context.Context, in *OrgInvitesRequest, opts ...grpc.CallOption) (*OrgInvitesResponse, error) {
+	out := new(OrgInvitesResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/OrgInvites", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) OrgInviteAccept(ctx context.Context, in *OrgInviteAcceptRequest, opts ...grpc.CallOption) (*OrgInviteAcceptResponse, error) {
+	out := new(OrgInviteAcceptResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/OrgInviteAccept", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RPCServer is the server API for RPC service.
 // All implementations must embed UnimplementedRPCServer
 // for forward compatibility
 type RPCServer interface {
 	// BEGIN NO AUTH
-	// Rand
 	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
+	AccountVerify(context.Context, *AccountVerifyRequest) (*AccountVerifyResponse, error)
 	AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error)
 	AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error)
 	AuthStatus(context.Context, *AuthStatusRequest) (*AuthStatusResponse, error)
@@ -486,6 +515,8 @@ type RPCServer interface {
 	OrgKey(context.Context, *OrgKeyRequest) (*OrgKeyResponse, error)
 	OrgCreate(context.Context, *OrgCreateRequest) (*OrgCreateResponse, error)
 	OrgSign(context.Context, *OrgSignRequest) (*OrgSignResponse, error)
+	OrgInvites(context.Context, *OrgInvitesRequest) (*OrgInvitesResponse, error)
+	OrgInviteAccept(context.Context, *OrgInviteAcceptRequest) (*OrgInviteAcceptResponse, error)
 	mustEmbedUnimplementedRPCServer()
 }
 
@@ -495,6 +526,9 @@ type UnimplementedRPCServer struct {
 
 func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccountCreate not implemented")
+}
+func (*UnimplementedRPCServer) AccountVerify(context.Context, *AccountVerifyRequest) (*AccountVerifyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountVerify not implemented")
 }
 func (*UnimplementedRPCServer) AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthUnlock not implemented")
@@ -607,6 +641,12 @@ func (*UnimplementedRPCServer) OrgCreate(context.Context, *OrgCreateRequest) (*O
 func (*UnimplementedRPCServer) OrgSign(context.Context, *OrgSignRequest) (*OrgSignResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method OrgSign not implemented")
 }
+func (*UnimplementedRPCServer) OrgInvites(context.Context, *OrgInvitesRequest) (*OrgInvitesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OrgInvites not implemented")
+}
+func (*UnimplementedRPCServer) OrgInviteAccept(context.Context, *OrgInviteAcceptRequest) (*OrgInviteAcceptResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OrgInviteAccept not implemented")
+}
 func (*UnimplementedRPCServer) mustEmbedUnimplementedRPCServer() {}
 
 func RegisterRPCServer(s *grpc.Server, srv RPCServer) {
@@ -627,6 +667,24 @@ func _RPC_AccountCreate_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RPCServer).AccountCreate(ctx, req.(*AccountCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AccountVerify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountVerifyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountVerify(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountVerify",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountVerify(ctx, req.(*AccountVerifyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1300,6 +1358,42 @@ func _RPC_OrgSign_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RPC_OrgInvites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrgInvitesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).OrgInvites(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/OrgInvites",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).OrgInvites(ctx, req.(*OrgInvitesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_OrgInviteAccept_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrgInviteAcceptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).OrgInviteAccept(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/OrgInviteAccept",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).OrgInviteAccept(ctx, req.(*OrgInviteAcceptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _RPC_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "service.RPC",
 	HandlerType: (*RPCServer)(nil),
@@ -1307,6 +1401,10 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AccountCreate",
 			Handler:    _RPC_AccountCreate_Handler,
+		},
+		{
+			MethodName: "AccountVerify",
+			Handler:    _RPC_AccountVerify_Handler,
 		},
 		{
 			MethodName: "AuthUnlock",
@@ -1451,6 +1549,14 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OrgSign",
 			Handler:    _RPC_OrgSign_Handler,
+		},
+		{
+			MethodName: "OrgInvites",
+			Handler:    _RPC_OrgInvites_Handler,
+		},
+		{
+			MethodName: "OrgInviteAccept",
+			Handler:    _RPC_OrgInviteAccept_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

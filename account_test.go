@@ -25,12 +25,18 @@ func TestAccountCreate(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Create again
+	_, err = service.AccountCreate(ctx, &AccountCreateRequest{
+		Email: "alice@keys.pub",
+	})
+	require.EqualError(t, err, "rpc error: code = AlreadyExists desc = account already exists")
+
 	ks, err := service.Keys(ctx, &KeysRequest{})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(ks.Keys))
 	account := ks.Keys[0]
 
-	out, err := service.currentAccount()
+	out, err := service.account(true)
 	require.NoError(t, err)
 	require.Equal(t, out.ID, keys.ID(account.ID))
 

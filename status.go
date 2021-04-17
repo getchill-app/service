@@ -14,24 +14,24 @@ func (s *service) Status(ctx context.Context, req *StatusRequest) (*StatusRespon
 
 	var account *Account
 	var org *Org
-	currentAccount, err := s.currentAccount()
+	a, err := s.account(false)
 	if err != nil {
 		return nil, err
 	}
-	if currentAccount != nil {
+	if a != nil {
 		account = &Account{
-			KID:   currentAccount.ID.String(),
-			Email: currentAccount.Email,
+			KID:   a.ID.String(),
+			Email: a.Email,
 		}
 	}
-	currentOrg, err := s.currentOrg()
+	o, err := s.org(false)
 	if err != nil {
 		return nil, err
 	}
-	if currentOrg != nil {
+	if o != nil {
 		org = &Org{
-			KID:    currentOrg.ID.String(),
-			Domain: currentOrg.Org,
+			ID:     o.ID.String(),
+			Domain: o.Org,
 		}
 	}
 
@@ -39,6 +39,5 @@ func (s *service) Status(ctx context.Context, req *StatusRequest) (*StatusRespon
 		Account: account,
 		Org:     org,
 	}
-	logger.Infof("Status, %s", resp.String())
 	return &resp, nil
 }

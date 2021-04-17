@@ -5,15 +5,14 @@ import (
 
 	"github.com/keys-pub/keys"
 	kapi "github.com/keys-pub/keys/api"
+	"github.com/keys-pub/keys/http/client"
 	"github.com/pkg/errors"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) (*AccountCreateResponse, error) {
 	logger.Debugf("Creating account...")
-
-	if req.Password == "" {
-		return nil, errors.Errorf("empty password")
-	}
 
 	var accountKey *keys.EdX25519Key
 	if req.AccountKey != "" {
@@ -26,6 +25,9 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 		accountKey = keys.GenerateEdX25519Key()
 	}
 	if err := s.vclient.AccountCreate(ctx, accountKey, req.Email); err != nil {
+		if client.IsConflict(err) {
+			return nil, status.Error(codes.AlreadyExists, "account already exists")
+		}
 		return nil, err
 	}
 
@@ -63,9 +65,11 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 		return nil, err
 	}
 
-	logger.Debugf("Registering password...")
-	if _, err := s.vault.RegisterPassword(mk, req.Password); err != nil {
-		return nil, err
+	if req.Password != "" {
+		logger.Debugf("Registering password...")
+		if _, err := s.vault.RegisterPassword(mk, req.Password); err != nil {
+			return nil, err
+		}
 	}
 
 	return &AccountCreateResponse{
@@ -73,10 +77,28 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 	}, nil
 }
 
-func (s *service) currentAccount() (*kapi.Key, error) {
-	return s.vault.Keyring().KeyWithLabel("account")
+func (s *service) AccountVerify(ctx context.Context, req *AccountVerifyRequest) (*AccountVerifyResponse, error) {
+	return nil, nil
 }
 
-func (s *service) currentOrg() (*kapi.Key, error) {
-	return s.vault.Keyring().KeyWithLabel("org")
+func (s *service) account(required bool) (*kapi.Key, error) {
+	key, err := s.vault.Keyring().KeyWithLabel("account")
+	if err != nil {
+		return nil, err
+	}
+	if required && key == nil {
+		return nil, errors.Errorf("no account")
+	}
+	return key, nil
+}
+
+func (s *service) org(required bool) (*kapi.Key, error) {
+	key, err := s.vault.Keyring().KeyWithLabel("org")
+	if err != nil {
+		return nil, err
+	}
+	if required && key == nil {
+		return nil, errors.Errorf("no org")
+	}
+	return key, nil
 }
