@@ -22,11 +22,11 @@ func (s *service) MessagePrepare(ctx context.Context, req *MessagePrepareRequest
 		return nil, errors.Errorf("no channel specified")
 	}
 
-	currentUser, err := s.currentUser()
+	account, err := s.account(true)
 	if err != nil {
 		return nil, err
 	}
-	sender, err := s.key(ctx, currentUser.ID)
+	sender, err := s.key(ctx, account.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) 
 		return &MessageCreateResponse{Message: msg}, nil
 	}
 
-	currentUser, err := s.currentUser()
+	account, err := s.account(true)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) 
 	}
 
 	// TODO: Prev
-	msg := messaging.NewMessage(channel, currentUser.ID).WithText(text).WithTimestamp(s.clock.NowMillis())
+	msg := messaging.NewMessage(channel, account.ID).WithText(text).WithTimestamp(s.clock.NowMillis())
 	if req.ID != "" {
 		msg.ID = req.ID
 	}

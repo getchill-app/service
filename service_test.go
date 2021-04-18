@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	chillserver "github.com/getchill-app/server"
+	chillserver "github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
 	kpserver "github.com/keys-pub/keys-ext/http/server"
 	"github.com/keys-pub/keys/dstore"
@@ -70,69 +70,83 @@ func newTestServerEnv(t *testing.T) *testServerEnv {
 	}
 }
 
-func newTestService(t *testing.T, serverEnv *testServerEnv) (*service, CloseFn) {
-	keysPubServerEnv := newTestKeysPubServerEnv(t, serverEnv)
-	chillServerEnv := newTestChillServerEnv(t, serverEnv)
+type serviceEnv struct {
+	service        *service
+	getChillAppEnv *testHTTPServerEnv
+	keysPubEnv     *testHTTPServerEnv
+}
+
+func newTestServiceEnv(t *testing.T, serverEnv *testServerEnv) (*serviceEnv, CloseFn) {
+	keysPubEnv := newTestKeysPubServerEnv(t, serverEnv)
+	getChillAppEnv := newTestChillServerEnv(t, serverEnv)
 	appName := "KeysTest-" + randName()
 
-	env, closeFn := newEnv(t, appName, keysPubServerEnv.url, chillServerEnv.url)
+	env, closeFn := newEnv(t, appName, keysPubEnv.url, getChillAppEnv.url)
 	auth := newAuthInterceptor()
 
 	svc, err := newService(env, Build{Version: "1.2.3", Commit: "deadbeef"}, auth, nil, serverEnv.clock)
 	require.NoError(t, err)
 
 	closeServiceFn := func() {
-		keysPubServerEnv.closeFn()
-		chillServerEnv.closeFn()
+		keysPubEnv.closeFn()
+		getChillAppEnv.closeFn()
 		svc.Close()
 		closeFn()
 	}
 
-	return svc, closeServiceFn
+	return &serviceEnv{service: svc, getChillAppEnv: getChillAppEnv, keysPubEnv: keysPubEnv}, closeServiceFn
 }
 
-func testAccountCreate(t *testing.T, service *service, email string, accountKey *keys.EdX25519Key, clientKey *keys.EdX25519Key) {
-	_, err := service.AccountCreate(context.TODO(), &AccountCreateRequest{
-		Email:      email,
-		Password:   authPassword,
-		AccountKey: accountKey.PaperKey(),
-		ClientKey:  clientKey.PaperKey(),
+func newTestService(t *testing.T, serverEnv *testServerEnv) (*service, CloseFn) {
+	serviceEnv, closeFn := newTestServiceEnv(t, serverEnv)
+	return serviceEnv.service, closeFn
+}
+
+func testAccountSetup(t *testing.T, env *testServerEnv, service *service, email string, password string, account *keys.EdX25519Key) {
+	req := &AccountCreateRequest{
+		Email:    email,
+		Password: password,
+	}
+	if account != nil {
+		req.AccountKey = account.PaperKey()
+	}
+	_, err := service.AccountCreate(context.TODO(), req)
+	require.NoError(t, err)
+	testOrgCreate(t, env, service)
+}
+
+func testAccountCreate(t *testing.T, service *service, email string, password string) {
+	ctx := context.TODO()
+	req := &AccountCreateRequest{
+		Email:    email,
+		Password: password,
+	}
+	_, err := service.AccountCreate(ctx, req)
+	require.NoError(t, err)
+}
+
+func testOrgCreate(t *testing.T, env *testServerEnv, service *service) {
+	ctx := context.TODO()
+	_, err := service.OrgKey(ctx, &OrgKeyRequest{Domain: "test.domain"})
+	require.NoError(t, err)
+
+	resp, err := service.OrgSign(ctx, &OrgSignRequest{
+		Domain: "test.domain",
 	})
 	require.NoError(t, err)
-}
 
-var authPassword = "testpassword"
-
-func testAuthSetup(t *testing.T, service *service) {
-	_, err := service.AuthSetup(context.TODO(), &AuthSetupRequest{
-		Secret: authPassword,
-		Type:   PasswordAuth,
+	env.client.SetProxy("https://test.domain/.well-known/getchill.txt", func(ctx context.Context, req *http.Request) http.ProxyResponse {
+		return http.ProxyResponse{Body: []byte(resp.Sig)}
 	})
-	require.NoError(t, err)
-	_, err = service.AuthUnlock(context.TODO(), &AuthUnlockRequest{
-		Secret: authPassword,
-		Type:   PasswordAuth,
-		Client: "test",
-	})
-	require.NoError(t, err)
-}
-
-func testAuthLock(t *testing.T, service *service) {
-	_, err := service.AuthLock(context.TODO(), &AuthLockRequest{})
-	require.NoError(t, err)
-}
-
-func testAuthUnlock(t *testing.T, service *service) {
-	_, err := service.AuthUnlock(context.TODO(), &AuthUnlockRequest{
-		Secret: authPassword,
-		Type:   PasswordAuth,
-		Client: "test",
+	_, err = service.OrgCreate(ctx, &OrgCreateRequest{
+		Domain: "test.domain",
 	})
 	require.NoError(t, err)
 }
 
 type testHTTPServerEnv struct {
 	url     string
+	emailer *testEmailer
 	closeFn func()
 }
 
@@ -147,8 +161,6 @@ func newTestKeysPubServerEnv(t *testing.T, env *testServerEnv) *testHTTPServerEn
 	require.NoError(t, err)
 	err = srv.SetTokenKey("f41deca7f9ef4f82e53cd7351a90bc370e2bf15ed74d147226439cfde740ac18")
 	require.NoError(t, err)
-	emailer := newTestEmailer()
-	srv.SetEmailer(emailer)
 
 	handler := kpserver.NewHandler(srv)
 	testServer := httptest.NewServer(handler)
@@ -183,6 +195,7 @@ func newTestChillServerEnv(t *testing.T, env *testServerEnv) *testHTTPServerEnv 
 	}
 	return &testHTTPServerEnv{
 		url:     srv.URL,
+		emailer: emailer,
 		closeFn: closeFn,
 	}
 }
@@ -203,24 +216,4 @@ func (t *testEmailer) SentVerificationEmail(email string) string {
 func (t *testEmailer) SendVerificationEmail(email string, code string) error {
 	t.sentVerificationEmail[email] = code
 	return nil
-}
-
-func TestServiceCheck(t *testing.T) {
-	// SetLogger(NewLogger(DebugLevel))
-	// vault.SetLogger(NewLogger(DebugLevel))
-	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
-	defer closeFn()
-
-	testAuthSetup(t, service)
-	require.True(t, service.checking)
-
-	testAuthLock(t, service)
-	require.False(t, service.checking)
-
-	testAuthUnlock(t, service)
-	require.True(t, service.checking)
-
-	testAuthLock(t, service)
-	require.False(t, service.checking)
 }

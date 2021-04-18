@@ -54,6 +54,21 @@ func (s *service) keyToRPC(ctx context.Context, key *api.Key, saved bool) (*Key,
 	return out, nil
 }
 
+func (s *service) edx25519Key(req string) (*keys.EdX25519Key, error) {
+	kid, err := keys.ParseID(req)
+	if err != nil {
+		return nil, err
+	}
+	key, err := s.vault.Keyring().Key(kid)
+	if err != nil {
+		return nil, err
+	}
+	if !key.IsEdX25519() {
+		return nil, errors.Errorf("invalid key")
+	}
+	return key.AsEdX25519(), nil
+}
+
 func (s *service) key(ctx context.Context, kid keys.ID) (*Key, error) {
 	key, err := s.vault.Keyring().Get(kid)
 	if err != nil {

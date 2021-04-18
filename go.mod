@@ -5,14 +5,15 @@ go 1.16
 require (
 	github.com/alta/protopatch v0.3.3
 	github.com/davecgh/go-spew v1.1.1
-	github.com/getchill-app/http-client v0.0.0-20210403012548-aee276f0e1d8
+	github.com/getchill-app/http/api v0.0.0-20210417135728-35e5bb4d8f35
+	github.com/getchill-app/http/client v0.0.0-20210413003944-fa4aeeaab394
+	github.com/getchill-app/http/server v0.0.0-20210412222146-088571f8d3a6
 	github.com/getchill-app/messaging v0.0.0-20210328173043-840bde55799b
-	github.com/getchill-app/server v0.0.0-20210403215008-63eeb378e83c
 	github.com/getchill-app/ws v0.0.0-20210402213525-39307cde11c0
 	github.com/getchill-app/ws/client v0.0.0-20210402213525-39307cde11c0
 	github.com/golang/protobuf v1.5.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
-	github.com/keys-pub/keys v0.1.21-0.20210402011617-28dedbda9f32
+	github.com/keys-pub/keys v0.1.22-0.20210417135906-1bd8b8cf63b7
 	github.com/keys-pub/keys-ext/auth/fido2 v0.0.0-20210327130412-59e9fcfcf22c
 	github.com/keys-pub/keys-ext/http/api v0.0.0-20210401205654-ff14cd298c61
 	github.com/keys-pub/keys-ext/http/client v0.0.0-20210327130412-59e9fcfcf22c
@@ -35,9 +36,11 @@ replace github.com/keys-pub/keys-ext/http/server => ../../keys.pub/keys-ext/http
 
 replace github.com/keys-pub/keys-ext/http/client => ../../keys.pub/keys-ext/http/client
 
-replace github.com/getchill-app/http-client => ../http-client
+replace github.com/getchill-app/http/client => ../http/client
 
-replace github.com/getchill-app/server => ../server
+replace github.com/getchill-app/http/server => ../http/server
+
+replace github.com/getchill-app/http/api => ../http/api
 
 replace github.com/getchill-app/messaging => ../messaging
 

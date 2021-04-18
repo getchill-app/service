@@ -7,8 +7,13 @@ import (
 var logger = NewLogger(ErrLevel)
 
 // SetLogger sets logger for the package.
-func SetLogger(l Logger) {
+// Use defer on return to unset after test case.
+func SetLogger(l Logger) func() {
+	old := logger
 	logger = l
+	return func() {
+		logger = old
+	}
 }
 
 // Logger interface used in this package.

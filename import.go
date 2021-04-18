@@ -20,7 +20,7 @@ func (s *service) KeyImport(ctx context.Context, req *KeyImportRequest) (*KeyImp
 	if key.UpdatedAt == 0 {
 		key.UpdatedAt = now
 	}
-	if err := s.vault.Keyring().Set(key); err != nil {
+	if err := s.vault.Keyring().Save(key); err != nil {
 		return nil, err
 	}
 
@@ -53,7 +53,7 @@ func (s *service) importID(id keys.ID) error {
 	now := s.clock.NowMillis()
 	vk.CreatedAt = now
 	vk.UpdatedAt = now
-	if err := s.vault.Keyring().Set(vk); err != nil {
+	if err := s.vault.Keyring().Save(vk); err != nil {
 		return err
 	}
 	if err := s.scs.Index(id); err != nil {

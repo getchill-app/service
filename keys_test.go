@@ -16,7 +16,7 @@ import (
 )
 
 func TestKeys(t *testing.T) {
-	SetLogger(NewLogger(DebugLevel))
+	// SetLogger(NewLogger(DebugLevel))
 	env := newTestServerEnv(t)
 	ctx := context.TODO()
 
@@ -24,7 +24,7 @@ func TestKeys(t *testing.T) {
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 
-	testAuthSetup(t, service)
+	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
 	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 
@@ -120,7 +120,7 @@ func TestKeysMissingSigchain(t *testing.T) {
 	defer closeFn()
 	ctx := context.TODO()
 
-	testAuthSetup(t, service)
+	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
 	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 
@@ -137,11 +137,11 @@ var bob = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x02))
 var charlie = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x03))
 
 func testImportKey(t *testing.T, service *service, key *keys.EdX25519Key) {
-	encoded, err := api.EncodeKey(api.NewKey(key), authPassword)
+	encoded, err := api.EncodeKey(api.NewKey(key), "testpassword")
 	require.NoError(t, err)
 	_, err = service.KeyImport(context.TODO(), &KeyImportRequest{
 		In:       []byte(encoded),
-		Password: authPassword,
+		Password: "testpassword",
 	})
 	require.NoError(t, err)
 }

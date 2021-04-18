@@ -133,23 +133,15 @@ func (s *service) StatementCreate(ctx context.Context, req *StatementCreateReque
 	if req.KID == "" {
 		return nil, errors.Errorf("no kid specified")
 	}
-	kid, err := keys.ParseID(req.KID)
+	key, err := s.edx25519Key(req.KID)
 	if err != nil {
 		return nil, err
 	}
-	key, err := s.vault.Keyring().Key(kid)
+	sc, err := s.scs.Sigchain(key.ID())
 	if err != nil {
 		return nil, err
 	}
-	if !key.IsEdX25519() {
-		return nil, errors.Errorf("invalid key type")
-	}
-
-	sc, err := s.scs.Sigchain(key.ID)
-	if err != nil {
-		return nil, err
-	}
-	st, err := keys.NewSigchainStatement(sc, req.Data, key.AsEdX25519(), "", s.clock.Now())
+	st, err := keys.NewSigchainStatement(sc, req.Data, key, "", s.clock.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +150,7 @@ func (s *service) StatementCreate(ctx context.Context, req *StatementCreateReque
 	}
 
 	if !req.Local {
-		if err := s.hclient.SigchainSave(ctx, st); err != nil {
+		if err := s.kclient.SigchainSave(ctx, st); err != nil {
 			return nil, err
 		}
 	}
@@ -176,30 +168,23 @@ func (s *service) StatementCreate(ctx context.Context, req *StatementCreateReque
 
 // StatementRevoke (RPC) ...
 func (s *service) StatementRevoke(ctx context.Context, req *StatementRevokeRequest) (*StatementRevokeResponse, error) {
-	kid, err := keys.ParseID(req.KID)
-	if err != nil {
-		return nil, err
-	}
-	key, err := s.vault.Keyring().Key(kid)
-	if err != nil {
-		return nil, err
-	}
-	if !key.IsEdX25519() {
-		return nil, errors.Errorf("invalid key type")
-	}
-
-	sc, err := s.scs.Sigchain(key.ID)
+	key, err := s.edx25519Key(req.KID)
 	if err != nil {
 		return nil, err
 	}
 
-	st, err := sc.Revoke(int(req.Seq), key.AsEdX25519())
+	sc, err := s.scs.Sigchain(key.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	st, err := sc.Revoke(int(req.Seq), key)
 	if err != nil {
 		return nil, err
 	}
 
 	if !req.Local {
-		if err := s.hclient.SigchainSave(ctx, st); err != nil {
+		if err := s.kclient.SigchainSave(ctx, st); err != nil {
 			return nil, err
 		}
 	}
@@ -208,7 +193,7 @@ func (s *service) StatementRevoke(ctx context.Context, req *StatementRevokeReque
 		return nil, err
 	}
 
-	if _, err = s.users.Update(ctx, key.ID); err != nil {
+	if _, err = s.users.Update(ctx, key.ID()); err != nil {
 		return nil, err
 	}
 

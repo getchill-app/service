@@ -5,17 +5,16 @@ import (
 
 	"github.com/keys-pub/keys"
 	kapi "github.com/keys-pub/keys/api"
+	"github.com/keys-pub/keys/http/client"
 	"github.com/keys-pub/vault"
 	"github.com/pkg/errors"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) (*AccountCreateResponse, error) {
-	logger.Infof("Auth setup...")
-	if s.vault.Status() != vault.SetupNeeded {
-		return nil, errors.Errorf("already setup")
-	}
-
 	logger.Debugf("Creating account...")
+
 	var accountKey *keys.EdX25519Key
 	if req.AccountKey != "" {
 		a, err := keys.NewEdX25519KeyFromPaperKey(req.AccountKey)
@@ -26,13 +25,16 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 	} else {
 		accountKey = keys.GenerateEdX25519Key()
 	}
-	if err := s.vclient.AccountCreate(ctx, accountKey, req.Email); err != nil {
+	if err := s.client.AccountCreate(ctx, accountKey, req.Email); err != nil {
+		if client.IsConflict(err) {
+			return nil, status.Error(codes.AlreadyExists, "account already exists")
+		}
 		return nil, err
 	}
 
 	logger.Debugf("Registering client key...")
 	var clientKey *keys.EdX25519Key
-	if req.AccountKey != "" {
+	if req.ClientKey != "" {
 		c, err := keys.NewEdX25519KeyFromPaperKey(req.ClientKey)
 		if err != nil {
 			return nil, err
@@ -52,14 +54,15 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 		return nil, err
 	}
 
-	unlock, mk, err := s.authUnlock(ctx, &AuthUnlockRequest{Secret: paperKey, Type: PaperKeyAuth})
+	token, mk, err := s.authUnlock(ctx, paperKey, PaperKeyAuth, "")
 	if err != nil {
 		return nil, err
 	}
 
 	logger.Debugf("Saving account key...")
 	ak := kapi.NewKey(accountKey).WithLabels("account").Created(s.clock.NowMillis())
-	if err := s.vault.Keyring().Set(ak); err != nil {
+	ak.Email = req.Email
+	if err := s.vault.Keyring().Save(ak); err != nil {
 		return nil, err
 	}
 
@@ -71,17 +74,83 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 	}
 
 	return &AccountCreateResponse{
-		AuthToken: unlock.AuthToken,
+		AuthToken: token,
 	}, nil
 }
 
-func (s *service) currentUser() (*kapi.Key, error) {
-	accountKeys, err := s.vault.Keyring().KeysWithLabel("account")
+func (s *service) AccountVerify(ctx context.Context, req *AccountVerifyRequest) (*AccountVerifyResponse, error) {
+	account, err := s.account(false)
 	if err != nil {
 		return nil, err
 	}
-	if len(accountKeys) == 0 {
-		return nil, errors.Errorf("no current user")
+	if account == nil {
+		return nil, errors.Errorf("no account")
 	}
-	return accountKeys[0], nil
+
+	if err := s.client.AccountVerify(ctx, account.AsEdX25519(), req.Code); err != nil {
+		return nil, err
+	}
+
+	account.SetExtBool("verified", true)
+	if err := s.vault.Keyring().Save(account); err != nil {
+		return nil, err
+	}
+
+	return &AccountVerifyResponse{}, nil
+}
+
+func (s *service) account(required bool) (*kapi.Key, error) {
+	key, err := s.vault.Keyring().KeyWithLabel("account")
+	if err != nil {
+		return nil, err
+	}
+	if required && key == nil {
+		return nil, errors.Errorf("no account")
+	}
+	return key, nil
+}
+
+func (s *service) org(required bool) (*kapi.Key, error) {
+	key, err := s.vault.Keyring().KeyWithLabel("org")
+	if err != nil {
+		return nil, err
+	}
+	if required && key == nil {
+		return nil, errors.Errorf("no org")
+	}
+	return key, nil
+}
+
+func (s *service) AccountStatus(ctx context.Context, req *AccountStatusRequest) (*AccountStatusResponse, error) {
+	if s.vault.Status() == vault.SetupNeeded {
+		return &AccountStatusResponse{Status: AccountSetupNeeded}, nil
+	}
+	if s.vault.Status() == vault.Locked {
+		return &AccountStatusResponse{Status: AccountLocked}, nil
+	}
+	if s.vault.Status() != vault.Unlocked {
+		return &AccountStatusResponse{Status: AccountUnknown}, nil
+	}
+
+	account, err := s.account(false)
+	if err != nil {
+		return nil, err
+	}
+	if account == nil {
+		// If we are setup we should have an account
+		return &AccountStatusResponse{Status: AccountUnknown}, nil
+	}
+	if !account.ExtBool("verified") {
+		return &AccountStatusResponse{Status: AccountUnverified}, nil
+	}
+
+	org, err := s.org(false)
+	if err != nil {
+		return nil, err
+	}
+	if org == nil {
+		return &AccountStatusResponse{Status: AccountOrgNeeded}, nil
+	}
+
+	return &AccountStatusResponse{Status: AccountRegistered}, nil
 }
