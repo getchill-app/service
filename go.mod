@@ -13,7 +13,7 @@ require (
 	github.com/getchill-app/ws/client v0.0.0-20210402213525-39307cde11c0
 	github.com/golang/protobuf v1.5.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
-	github.com/keys-pub/keys v0.1.22-0.20210417135906-1bd8b8cf63b7
+	github.com/keys-pub/keys v0.1.22-0.20210417180828-29a388ae126a
 	github.com/keys-pub/keys-ext/auth/fido2 v0.0.0-20210327130412-59e9fcfcf22c
 	github.com/keys-pub/keys-ext/http/api v0.0.0-20210401205654-ff14cd298c61
 	github.com/keys-pub/keys-ext/http/client v0.0.0-20210327130412-59e9fcfcf22c

@@ -5,12 +5,16 @@ import (
 
 	"github.com/keys-pub/keys"
 	kapi "github.com/keys-pub/keys/api"
-	"github.com/keys-pub/keys/http/client"
 	"github.com/keys-pub/vault"
 	"github.com/pkg/errors"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 )
+
+func (s *service) AccountRegister(ctx context.Context, req *AccountRegisterRequest) (*AccountRegisterResponse, error) {
+	if err := s.client.AccountRegister(ctx, req.Email); err != nil {
+		return nil, err
+	}
+	return &AccountRegisterResponse{}, nil
+}
 
 func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) (*AccountCreateResponse, error) {
 	logger.Debugf("Creating account...")
@@ -25,10 +29,7 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 	} else {
 		accountKey = keys.GenerateEdX25519Key()
 	}
-	if err := s.client.AccountCreate(ctx, accountKey, req.Email); err != nil {
-		if client.IsConflict(err) {
-			return nil, status.Error(codes.AlreadyExists, "account already exists")
-		}
+	if err := s.client.AccountCreate(ctx, accountKey, req.Email, req.Code); err != nil {
 		return nil, err
 	}
 
@@ -78,27 +79,6 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 	}, nil
 }
 
-func (s *service) AccountVerify(ctx context.Context, req *AccountVerifyRequest) (*AccountVerifyResponse, error) {
-	account, err := s.account(false)
-	if err != nil {
-		return nil, err
-	}
-	if account == nil {
-		return nil, errors.Errorf("no account")
-	}
-
-	if err := s.client.AccountVerify(ctx, account.AsEdX25519(), req.Code); err != nil {
-		return nil, err
-	}
-
-	account.SetExtBool("verified", true)
-	if err := s.vault.Keyring().Save(account); err != nil {
-		return nil, err
-	}
-
-	return &AccountVerifyResponse{}, nil
-}
-
 func (s *service) account(required bool) (*kapi.Key, error) {
 	key, err := s.vault.Keyring().KeyWithLabel("account")
 	if err != nil {
@@ -122,14 +102,15 @@ func (s *service) org(required bool) (*kapi.Key, error) {
 }
 
 func (s *service) AccountStatus(ctx context.Context, req *AccountStatusRequest) (*AccountStatusResponse, error) {
-	if s.vault.Status() == vault.SetupNeeded {
+	switch s.vault.Status() {
+	case vault.SetupNeeded:
 		return &AccountStatusResponse{Status: AccountSetupNeeded}, nil
-	}
-	if s.vault.Status() == vault.Locked {
+	case vault.Locked:
 		return &AccountStatusResponse{Status: AccountLocked}, nil
 	}
+
 	if s.vault.Status() != vault.Unlocked {
-		return &AccountStatusResponse{Status: AccountUnknown}, nil
+		return nil, errors.Errorf("invalid account status")
 	}
 
 	account, err := s.account(false)
@@ -139,9 +120,6 @@ func (s *service) AccountStatus(ctx context.Context, req *AccountStatusRequest) 
 	if account == nil {
 		// If we are setup we should have an account
 		return &AccountStatusResponse{Status: AccountUnknown}, nil
-	}
-	if !account.ExtBool("verified") {
-		return &AccountStatusResponse{Status: AccountUnverified}, nil
 	}
 
 	org, err := s.org(false)

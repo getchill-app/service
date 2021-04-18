@@ -59,7 +59,7 @@ func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) 
 		}
 		key := api.NewKey(channelKey)
 		key.Token = vault.Token
-		if _, err := s.messenger.AddKey(key); err != nil {
+		if err := s.messenger.AddKey(key); err != nil {
 			return nil, err
 		}
 		channel = key
@@ -147,7 +147,7 @@ func (s *service) importOrgChannels(ctx context.Context) error {
 		key := api.NewKey(channel)
 		key.Token = vault.Token
 		logger.Debugf("Import org key %s", key.ID)
-		if _, err := s.messenger.AddKey(key); err != nil {
+		if err := s.messenger.AddKey(key); err != nil {
 			return err
 		}
 	}

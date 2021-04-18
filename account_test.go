@@ -24,34 +24,17 @@ func TestAccountCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, AccountSetupNeeded, status.Status)
 
-	_, err = service.AccountCreate(ctx, &AccountCreateRequest{
-		Email:    "alice@keys.pub",
-		Password: "testpassword",
+	_, err = service.AccountRegister(ctx, &AccountRegisterRequest{
+		Email: "alice@keys.pub",
 	})
 	require.NoError(t, err)
-
 	code := serviceEnv.getChillAppEnv.emailer.SentVerificationEmail("alice@keys.pub")
 	require.NotEmpty(t, code)
 
-	status, err = service.AccountStatus(ctx, &AccountStatusRequest{})
-	require.NoError(t, err)
-	require.Equal(t, AccountUnverified, status.Status)
-
-	// Create again
 	_, err = service.AccountCreate(ctx, &AccountCreateRequest{
-		Email: "alice@keys.pub",
-	})
-	require.EqualError(t, err, "rpc error: code = AlreadyExists desc = account already exists")
-
-	// Verify (invalid)
-	_, err = service.AccountVerify(ctx, &AccountVerifyRequest{
-		Code: "invalidcode",
-	})
-	require.EqualError(t, err, "invalid code (400)")
-
-	// Verify
-	_, err = service.AccountVerify(ctx, &AccountVerifyRequest{
-		Code: code,
+		Email:    "alice@keys.pub",
+		Code:     code,
+		Password: "testpassword",
 	})
 	require.NoError(t, err)
 

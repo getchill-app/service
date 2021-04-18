@@ -18,8 +18,8 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RPCClient interface {
 	// BEGIN NO AUTH
+	AccountRegister(ctx context.Context, in *AccountRegisterRequest, opts ...grpc.CallOption) (*AccountRegisterResponse, error)
 	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
-	AccountVerify(ctx context.Context, in *AccountVerifyRequest, opts ...grpc.CallOption) (*AccountVerifyResponse, error)
 	AccountStatus(ctx context.Context, in *AccountStatusRequest, opts ...grpc.CallOption) (*AccountStatusResponse, error)
 	AuthUnlock(ctx context.Context, in *AuthUnlockRequest, opts ...grpc.CallOption) (*AuthUnlockResponse, error)
 	AuthLock(ctx context.Context, in *AuthLockRequest, opts ...grpc.CallOption) (*AuthLockResponse, error)
@@ -73,18 +73,18 @@ func NewRPCClient(cc grpc.ClientConnInterface) RPCClient {
 	return &rPCClient{cc}
 }
 
-func (c *rPCClient) AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error) {
-	out := new(AccountCreateResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AccountCreate", in, out, opts...)
+func (c *rPCClient) AccountRegister(ctx context.Context, in *AccountRegisterRequest, opts ...grpc.CallOption) (*AccountRegisterResponse, error) {
+	out := new(AccountRegisterResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountRegister", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *rPCClient) AccountVerify(ctx context.Context, in *AccountVerifyRequest, opts ...grpc.CallOption) (*AccountVerifyResponse, error) {
-	out := new(AccountVerifyResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AccountVerify", in, out, opts...)
+func (c *rPCClient) AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error) {
+	out := new(AccountCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountCreate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -461,8 +461,8 @@ func (c *rPCClient) OrgInviteAccept(ctx context.Context, in *OrgInviteAcceptRequ
 // for forward compatibility
 type RPCServer interface {
 	// BEGIN NO AUTH
+	AccountRegister(context.Context, *AccountRegisterRequest) (*AccountRegisterResponse, error)
 	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
-	AccountVerify(context.Context, *AccountVerifyRequest) (*AccountVerifyResponse, error)
 	AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error)
 	AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error)
 	AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error)
@@ -513,11 +513,11 @@ type RPCServer interface {
 type UnimplementedRPCServer struct {
 }
 
+func (*UnimplementedRPCServer) AccountRegister(context.Context, *AccountRegisterRequest) (*AccountRegisterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountRegister not implemented")
+}
 func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccountCreate not implemented")
-}
-func (*UnimplementedRPCServer) AccountVerify(context.Context, *AccountVerifyRequest) (*AccountVerifyResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AccountVerify not implemented")
 }
 func (*UnimplementedRPCServer) AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccountStatus not implemented")
@@ -639,6 +639,24 @@ func RegisterRPCServer(s *grpc.Server, srv RPCServer) {
 	s.RegisterService(&_RPC_serviceDesc, srv)
 }
 
+func _RPC_AccountRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountRegisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountRegister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountRegister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountRegister(ctx, req.(*AccountRegisterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RPC_AccountCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AccountCreateRequest)
 	if err := dec(in); err != nil {
@@ -653,24 +671,6 @@ func _RPC_AccountCreate_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RPCServer).AccountCreate(ctx, req.(*AccountCreateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_AccountVerify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AccountVerifyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AccountVerify(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AccountVerify",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AccountVerify(ctx, req.(*AccountVerifyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1367,12 +1367,12 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*RPCServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AccountCreate",
-			Handler:    _RPC_AccountCreate_Handler,
+			MethodName: "AccountRegister",
+			Handler:    _RPC_AccountRegister_Handler,
 		},
 		{
-			MethodName: "AccountVerify",
-			Handler:    _RPC_AccountVerify_Handler,
+			MethodName: "AccountCreate",
+			Handler:    _RPC_AccountCreate_Handler,
 		},
 		{
 			MethodName: "AccountStatus",

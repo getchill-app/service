@@ -10,8 +10,8 @@ import "patch/go.proto";
 
 service RPC {      
   // BEGIN NO AUTH  
-  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {} 
-  rpc AccountVerify(AccountVerifyRequest) returns (AccountVerifyResponse) {} 
+  rpc AccountRegister(AccountRegisterRequest) returns (AccountRegisterResponse) {}   
+  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}   
   rpc AccountStatus(AccountStatusRequest) returns (AccountStatusResponse) {}
   rpc AuthUnlock(AuthUnlockRequest) returns (AuthUnlockResponse) {} 
   rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {}   
@@ -68,17 +68,16 @@ service RPC {
 
 }
 
-message AccountVerifyRequest {
-  string code = 1;
+message AccountRegisterRequest {
+  string email = 1;
 }
-message AccountVerifyResponse {}
+message AccountRegisterResponse {}
 
 message AccountCreateRequest {
   string email = 1;
-  // Password registered.
-  string password = 2;
-  // Remember in keychain.
-  bool remember = 3;
+  string code = 2;
+  string password = 3;
+  
   // AccountKey is optional (generated if not specified).
   string accountKey = 10;
   // ClientKey is optional (generated if not specified).
@@ -122,7 +121,6 @@ enum AccountStatus {
 
   ACCOUNT_UNKNOWN = 0 [(go.value) = {name: "AccountUnknown"}];
   ACCOUNT_SETUP_NEEDED = 1 [(go.value) = {name: "AccountSetupNeeded"}];  
-  ACCOUNT_UNVERIFIED = 2 [(go.value) = {name: "AccountUnverified"}];
   ACCOUNT_ORG_NEEDED = 3 [(go.value) = {name: "AccountOrgNeeded"}];  
   ACCOUNT_REGISTERED = 4 [(go.value) = {name: "AccountRegistered"}];  
   ACCOUNT_LOCKED = 5 [(go.value) = {name: "AccountLocked"}];  
