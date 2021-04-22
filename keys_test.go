@@ -24,7 +24,7 @@ func TestKeys(t *testing.T) {
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 
-	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, service, "alice@keys.pub")
 	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 
@@ -120,7 +120,7 @@ func TestKeysMissingSigchain(t *testing.T) {
 	defer closeFn()
 	ctx := context.TODO()
 
-	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, service, "alice@keys.pub")
 	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 

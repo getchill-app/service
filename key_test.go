@@ -20,7 +20,7 @@ func TestKey(t *testing.T) {
 	defer closeFn()
 	ctx := context.TODO()
 
-	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, service, "alice@keys.pub")
 	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 
@@ -69,7 +69,7 @@ func TestKeyGenerate(t *testing.T) {
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, service, "alice@keys.pub")
 	kr := service.vault.Keyring()
 
 	// Generate EdX25519
@@ -114,7 +114,7 @@ func TestKeyRemove(t *testing.T) {
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, service, "alice@keys.pub")
 	testImportKey(t, service, alice)
 	kr := service.vault.Keyring()
 
@@ -152,7 +152,7 @@ func TestKeySearch(t *testing.T) {
 	defer closeFn()
 	ctx := context.TODO()
 
-	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, service, "alice@keys.pub")
 	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 

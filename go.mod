@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/alta/protopatch v0.3.3
 	github.com/davecgh/go-spew v1.1.1
-	github.com/getchill-app/http/api v0.0.0-20210417135728-35e5bb4d8f35
+	github.com/getchill-app/http/api v0.0.0-20210421162410-7537d4a9bf83
 	github.com/getchill-app/http/client v0.0.0-20210413003944-fa4aeeaab394
 	github.com/getchill-app/http/server v0.0.0-20210412222146-088571f8d3a6
 	github.com/getchill-app/messaging v0.0.0-20210328173043-840bde55799b

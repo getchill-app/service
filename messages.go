@@ -26,7 +26,7 @@ func (s *service) MessagePrepare(ctx context.Context, req *MessagePrepareRequest
 	if err != nil {
 		return nil, err
 	}
-	sender, err := s.key(ctx, account.ID)
+	sender, err := s.userName(ctx, account.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *service) messageToRPC(ctx context.Context, msg *messaging.Message) (*Me
 		return nil, errors.Errorf("no sender")
 	}
 
-	sender, err := s.key(ctx, msg.Sender)
+	sender, err := s.userName(ctx, msg.Sender)
 	if err != nil {
 		return nil, err
 	}
@@ -170,14 +170,7 @@ func (s *service) messageToRPC(ctx context.Context, msg *messaging.Message) (*Me
 	}, nil
 }
 
-func userNameForKey(k *Key) string {
-	if k.User != nil && k.User.ID != "" {
-		return k.User.ID
-	}
-	return k.ID
-}
-
-func (s *service) messageText(ctx context.Context, msg *messaging.Message, sender *Key) ([]string, error) {
+func (s *service) messageText(ctx context.Context, msg *messaging.Message, sender string) ([]string, error) {
 	texts := []string{}
 	if msg.Text != "" {
 		texts = append(texts, msg.Text)
@@ -185,10 +178,10 @@ func (s *service) messageText(ctx context.Context, msg *messaging.Message, sende
 
 	if msg.Command != nil {
 		if msg.Command.ChannelInfo != nil && msg.Command.ChannelInfo.Name != "" {
-			texts = append(texts, fmt.Sprintf("%s set the channel name to %s", userNameForKey(sender), msg.Command.ChannelInfo.Name))
+			texts = append(texts, fmt.Sprintf("Set the channel name to %s", msg.Command.ChannelInfo.Name))
 		}
 		if msg.Command.ChannelInfo != nil && msg.Command.ChannelInfo.Description != "" {
-			texts = append(texts, fmt.Sprintf("%s set the channel description to %s", userNameForKey(sender), msg.Command.ChannelInfo.Description))
+			texts = append(texts, fmt.Sprintf("Set the channel description to %s", msg.Command.ChannelInfo.Description))
 		}
 
 		// for _, invite := range msg.Command.ChannelInvites {

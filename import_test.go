@@ -15,7 +15,7 @@ func TestKeyImport(t *testing.T) {
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, service, "alice@keys.pub")
 
 	key := keys.GenerateEdX25519Key()
 	export, err := api.EncodeKey(api.NewKey(key), "testpassword")
@@ -74,7 +74,7 @@ func TestKeyImportSaltpack(t *testing.T) {
 	service, closeFn := newTestService(t, env)
 	defer closeFn()
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, service, "alice@keys.pub")
 
 	importResp, err := service.KeyImport(ctx, &KeyImportRequest{
 		In:       []byte(msg),

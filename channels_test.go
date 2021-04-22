@@ -15,10 +15,11 @@ func TestChannel(t *testing.T) {
 	env := newTestServerEnv(t)
 	ctx := context.TODO()
 
-	aliceService, aliceCloseFn := newTestService(t, env)
+	aliceServiceEnv, aliceCloseFn := newTestServiceEnv(t, env)
 	defer aliceCloseFn()
+	aliceService := aliceServiceEnv.service
 
-	testAccountSetup(t, env, aliceService, "alice@keys.pub", "testpassword", alice)
+	testAccountSetup(t, aliceServiceEnv, "alice@keys.pub", alice)
 	testUserSetupGithub(t, env, aliceService, alice, "alice")
 
 	// Alice creates a channel

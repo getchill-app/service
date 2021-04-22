@@ -14,7 +14,7 @@ func TestPull(t *testing.T) {
 	// Alice
 	aliceService, aliceCloseFn := newTestService(t, env)
 	defer aliceCloseFn()
-	testAccountCreate(t, aliceService, "alice@keys.pub", "testpassword")
+	testAccountCreate(t, aliceService, "alice@keys.pub")
 	testImportKey(t, aliceService, alice)
 	testUserSetupGithub(t, env, aliceService, alice, "alice")
 
@@ -26,7 +26,7 @@ func TestPull(t *testing.T) {
 	// Bob
 	bobService, bobCloseFn := newTestService(t, env)
 	defer bobCloseFn()
-	testAccountCreate(t, bobService, "bob@keys.pub", "testpassword")
+	testAccountCreate(t, bobService, "bob@keys.pub")
 	testImportKey(t, bobService, bob)
 	testUserSetupGithub(t, env, bobService, bob, "bob")
 
@@ -44,7 +44,7 @@ func TestPull(t *testing.T) {
 	// Charlie
 	charlieService, charlieCloseFn := newTestService(t, env)
 	defer charlieCloseFn()
-	testAccountCreate(t, charlieService, "charlie@keys.pub", "testpassword")
+	testAccountCreate(t, charlieService, "charlie@keys.pub")
 	testImportKey(t, charlieService, charlie)
 	testUserSetupGithub(t, env, charlieService, charlie, "charlie")
 

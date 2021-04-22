@@ -40,7 +40,7 @@ func (s *service) KeyImport(ctx context.Context, req *KeyImportRequest) (*KeyImp
 	}, nil
 }
 
-func (s *service) importID(id keys.ID) error {
+func (s *service) importID(id keys.ID, label string) error {
 	// Check if key already exists and skip if so.
 	key, err := s.vault.Keyring().Get(id)
 	if err != nil {
@@ -50,6 +50,9 @@ func (s *service) importID(id keys.ID) error {
 		return nil
 	}
 	vk := api.NewKey(id)
+	if label != "" {
+		vk.WithLabels(label)
+	}
 	now := s.clock.NowMillis()
 	vk.CreatedAt = now
 	vk.UpdatedAt = now

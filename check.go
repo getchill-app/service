@@ -6,7 +6,6 @@ import (
 
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/user"
-	"github.com/pkg/errors"
 )
 
 func (s *service) startCheck() {
@@ -72,8 +71,8 @@ func (s *service) tryCheck(ctx context.Context) {
 	}
 }
 
-func (s *service) edxPublicKeys() ([]keys.ID, error) {
-	pks, err := s.vault.Keyring().KeysWithType(string(keys.EdX25519))
+func (s *service) userPublicKeys() ([]keys.ID, error) {
+	pks, err := s.vault.Keyring().KeysWithLabel("user")
 	if err != nil {
 		return nil, err
 	}
@@ -85,11 +84,11 @@ func (s *service) edxPublicKeys() ([]keys.ID, error) {
 }
 
 func (s *service) checkKeys(ctx context.Context) error {
-	logger.Infof("Checking keys...")
-	pks, err := s.edxPublicKeys()
+	pks, err := s.userPublicKeys()
 	if err != nil {
-		return errors.Wrapf(err, "failed to list public keys")
+		return err
 	}
+	logger.Infof("Checking keys (%d)...", len(pks))
 	for _, pk := range pks {
 		if err := ctx.Err(); err != nil {
 			return err

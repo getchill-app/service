@@ -7,6 +7,7 @@ import (
 
 	wsapi "github.com/getchill-app/ws"
 	wsclient "github.com/getchill-app/ws/client"
+	"github.com/keys-pub/keys/dstore"
 	"github.com/pkg/errors"
 )
 
@@ -81,7 +82,7 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 		return err
 	}
 
-	logger.Debugf("Relay tokens: %v", tokens)
+	logger.Debugf("Relay tokens (%d)", len(tokens))
 	if err := relay.Authorize(tokens); err != nil {
 		return err
 	}
@@ -147,13 +148,13 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 }
 
 func (s *service) relayTokens(ctx context.Context) ([]string, error) {
-	tokens, err := s.vault.Keyring().Tokens()
+	vaults, err := s.vault.Keyring().Vaults()
 	if err != nil {
 		return nil, err
 	}
-	out := make([]string, 0, len(tokens))
-	for _, token := range tokens {
-		out = append(out, token.Token)
+	tokens := dstore.NewStringSet()
+	for _, vlt := range vaults {
+		tokens.Add(vlt.Token)
 	}
-	return out, nil
+	return tokens.Strings(), nil
 }

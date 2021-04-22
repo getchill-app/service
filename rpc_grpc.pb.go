@@ -18,13 +18,15 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RPCClient interface {
 	// BEGIN NO AUTH
-	AccountRegister(ctx context.Context, in *AccountRegisterRequest, opts ...grpc.CallOption) (*AccountRegisterResponse, error)
-	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
-	AccountStatus(ctx context.Context, in *AccountStatusRequest, opts ...grpc.CallOption) (*AccountStatusResponse, error)
+	AuthStatus(ctx context.Context, in *AuthStatusRequest, opts ...grpc.CallOption) (*AuthStatusResponse, error)
 	AuthUnlock(ctx context.Context, in *AuthUnlockRequest, opts ...grpc.CallOption) (*AuthUnlockResponse, error)
 	AuthLock(ctx context.Context, in *AuthLockRequest, opts ...grpc.CallOption) (*AuthLockResponse, error)
 	Rand(ctx context.Context, in *RandRequest, opts ...grpc.CallOption) (*RandResponse, error)
 	RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error)
+	AccountRegister(ctx context.Context, in *AccountRegisterRequest, opts ...grpc.CallOption) (*AccountRegisterResponse, error)
+	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
+	AccountStatus(ctx context.Context, in *AccountStatusRequest, opts ...grpc.CallOption) (*AccountStatusResponse, error)
+	AccountSetUsername(ctx context.Context, in *AccountSetUsernameRequest, opts ...grpc.CallOption) (*AccountSetUsernameResponse, error)
 	KeyGenerate(ctx context.Context, in *KeyGenerateRequest, opts ...grpc.CallOption) (*KeyGenerateResponse, error)
 	Keys(ctx context.Context, in *KeysRequest, opts ...grpc.CallOption) (*KeysResponse, error)
 	Key(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*KeyResponse, error)
@@ -57,12 +59,8 @@ type RPCClient interface {
 	// DB
 	Collections(ctx context.Context, in *CollectionsRequest, opts ...grpc.CallOption) (*CollectionsResponse, error)
 	Documents(ctx context.Context, in *DocumentsRequest, opts ...grpc.CallOption) (*DocumentsResponse, error)
-	// Org
-	OrgKey(ctx context.Context, in *OrgKeyRequest, opts ...grpc.CallOption) (*OrgKeyResponse, error)
-	OrgCreate(ctx context.Context, in *OrgCreateRequest, opts ...grpc.CallOption) (*OrgCreateResponse, error)
-	OrgSign(ctx context.Context, in *OrgSignRequest, opts ...grpc.CallOption) (*OrgSignResponse, error)
-	OrgInvites(ctx context.Context, in *OrgInvitesRequest, opts ...grpc.CallOption) (*OrgInvitesResponse, error)
-	OrgInviteAccept(ctx context.Context, in *OrgInviteAcceptRequest, opts ...grpc.CallOption) (*OrgInviteAcceptResponse, error)
+	// Team
+	TeamInvites(ctx context.Context, in *TeamInvitesRequest, opts ...grpc.CallOption) (*TeamInvitesResponse, error)
 }
 
 type rPCClient struct {
@@ -73,27 +71,9 @@ func NewRPCClient(cc grpc.ClientConnInterface) RPCClient {
 	return &rPCClient{cc}
 }
 
-func (c *rPCClient) AccountRegister(ctx context.Context, in *AccountRegisterRequest, opts ...grpc.CallOption) (*AccountRegisterResponse, error) {
-	out := new(AccountRegisterResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AccountRegister", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error) {
-	out := new(AccountCreateResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AccountCreate", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) AccountStatus(ctx context.Context, in *AccountStatusRequest, opts ...grpc.CallOption) (*AccountStatusResponse, error) {
-	out := new(AccountStatusResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/AccountStatus", in, out, opts...)
+func (c *rPCClient) AuthStatus(ctx context.Context, in *AuthStatusRequest, opts ...grpc.CallOption) (*AuthStatusResponse, error) {
+	out := new(AuthStatusResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AuthStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +110,42 @@ func (c *rPCClient) Rand(ctx context.Context, in *RandRequest, opts ...grpc.Call
 func (c *rPCClient) RandPassword(ctx context.Context, in *RandPasswordRequest, opts ...grpc.CallOption) (*RandPasswordResponse, error) {
 	out := new(RandPasswordResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/RandPassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AccountRegister(ctx context.Context, in *AccountRegisterRequest, opts ...grpc.CallOption) (*AccountRegisterResponse, error) {
+	out := new(AccountRegisterResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountRegister", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error) {
+	out := new(AccountCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AccountStatus(ctx context.Context, in *AccountStatusRequest, opts ...grpc.CallOption) (*AccountStatusResponse, error) {
+	out := new(AccountStatusResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AccountSetUsername(ctx context.Context, in *AccountSetUsernameRequest, opts ...grpc.CallOption) (*AccountSetUsernameResponse, error) {
+	out := new(AccountSetUsernameResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountSetUsername", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -411,45 +427,9 @@ func (c *rPCClient) Documents(ctx context.Context, in *DocumentsRequest, opts ..
 	return out, nil
 }
 
-func (c *rPCClient) OrgKey(ctx context.Context, in *OrgKeyRequest, opts ...grpc.CallOption) (*OrgKeyResponse, error) {
-	out := new(OrgKeyResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/OrgKey", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) OrgCreate(ctx context.Context, in *OrgCreateRequest, opts ...grpc.CallOption) (*OrgCreateResponse, error) {
-	out := new(OrgCreateResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/OrgCreate", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) OrgSign(ctx context.Context, in *OrgSignRequest, opts ...grpc.CallOption) (*OrgSignResponse, error) {
-	out := new(OrgSignResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/OrgSign", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) OrgInvites(ctx context.Context, in *OrgInvitesRequest, opts ...grpc.CallOption) (*OrgInvitesResponse, error) {
-	out := new(OrgInvitesResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/OrgInvites", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rPCClient) OrgInviteAccept(ctx context.Context, in *OrgInviteAcceptRequest, opts ...grpc.CallOption) (*OrgInviteAcceptResponse, error) {
-	out := new(OrgInviteAcceptResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/OrgInviteAccept", in, out, opts...)
+func (c *rPCClient) TeamInvites(ctx context.Context, in *TeamInvitesRequest, opts ...grpc.CallOption) (*TeamInvitesResponse, error) {
+	out := new(TeamInvitesResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/TeamInvites", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -461,13 +441,15 @@ func (c *rPCClient) OrgInviteAccept(ctx context.Context, in *OrgInviteAcceptRequ
 // for forward compatibility
 type RPCServer interface {
 	// BEGIN NO AUTH
-	AccountRegister(context.Context, *AccountRegisterRequest) (*AccountRegisterResponse, error)
-	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
-	AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error)
+	AuthStatus(context.Context, *AuthStatusRequest) (*AuthStatusResponse, error)
 	AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error)
 	AuthLock(context.Context, *AuthLockRequest) (*AuthLockResponse, error)
 	Rand(context.Context, *RandRequest) (*RandResponse, error)
 	RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error)
+	AccountRegister(context.Context, *AccountRegisterRequest) (*AccountRegisterResponse, error)
+	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
+	AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error)
+	AccountSetUsername(context.Context, *AccountSetUsernameRequest) (*AccountSetUsernameResponse, error)
 	KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error)
 	Keys(context.Context, *KeysRequest) (*KeysResponse, error)
 	Key(context.Context, *KeyRequest) (*KeyResponse, error)
@@ -500,12 +482,8 @@ type RPCServer interface {
 	// DB
 	Collections(context.Context, *CollectionsRequest) (*CollectionsResponse, error)
 	Documents(context.Context, *DocumentsRequest) (*DocumentsResponse, error)
-	// Org
-	OrgKey(context.Context, *OrgKeyRequest) (*OrgKeyResponse, error)
-	OrgCreate(context.Context, *OrgCreateRequest) (*OrgCreateResponse, error)
-	OrgSign(context.Context, *OrgSignRequest) (*OrgSignResponse, error)
-	OrgInvites(context.Context, *OrgInvitesRequest) (*OrgInvitesResponse, error)
-	OrgInviteAccept(context.Context, *OrgInviteAcceptRequest) (*OrgInviteAcceptResponse, error)
+	// Team
+	TeamInvites(context.Context, *TeamInvitesRequest) (*TeamInvitesResponse, error)
 	mustEmbedUnimplementedRPCServer()
 }
 
@@ -513,14 +491,8 @@ type RPCServer interface {
 type UnimplementedRPCServer struct {
 }
 
-func (*UnimplementedRPCServer) AccountRegister(context.Context, *AccountRegisterRequest) (*AccountRegisterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AccountRegister not implemented")
-}
-func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AccountCreate not implemented")
-}
-func (*UnimplementedRPCServer) AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AccountStatus not implemented")
+func (*UnimplementedRPCServer) AuthStatus(context.Context, *AuthStatusRequest) (*AuthStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthStatus not implemented")
 }
 func (*UnimplementedRPCServer) AuthUnlock(context.Context, *AuthUnlockRequest) (*AuthUnlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthUnlock not implemented")
@@ -533,6 +505,18 @@ func (*UnimplementedRPCServer) Rand(context.Context, *RandRequest) (*RandRespons
 }
 func (*UnimplementedRPCServer) RandPassword(context.Context, *RandPasswordRequest) (*RandPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RandPassword not implemented")
+}
+func (*UnimplementedRPCServer) AccountRegister(context.Context, *AccountRegisterRequest) (*AccountRegisterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountRegister not implemented")
+}
+func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountCreate not implemented")
+}
+func (*UnimplementedRPCServer) AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountStatus not implemented")
+}
+func (*UnimplementedRPCServer) AccountSetUsername(context.Context, *AccountSetUsernameRequest) (*AccountSetUsernameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountSetUsername not implemented")
 }
 func (*UnimplementedRPCServer) KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeyGenerate not implemented")
@@ -618,20 +602,8 @@ func (*UnimplementedRPCServer) Collections(context.Context, *CollectionsRequest)
 func (*UnimplementedRPCServer) Documents(context.Context, *DocumentsRequest) (*DocumentsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Documents not implemented")
 }
-func (*UnimplementedRPCServer) OrgKey(context.Context, *OrgKeyRequest) (*OrgKeyResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OrgKey not implemented")
-}
-func (*UnimplementedRPCServer) OrgCreate(context.Context, *OrgCreateRequest) (*OrgCreateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OrgCreate not implemented")
-}
-func (*UnimplementedRPCServer) OrgSign(context.Context, *OrgSignRequest) (*OrgSignResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OrgSign not implemented")
-}
-func (*UnimplementedRPCServer) OrgInvites(context.Context, *OrgInvitesRequest) (*OrgInvitesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OrgInvites not implemented")
-}
-func (*UnimplementedRPCServer) OrgInviteAccept(context.Context, *OrgInviteAcceptRequest) (*OrgInviteAcceptResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OrgInviteAccept not implemented")
+func (*UnimplementedRPCServer) TeamInvites(context.Context, *TeamInvitesRequest) (*TeamInvitesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TeamInvites not implemented")
 }
 func (*UnimplementedRPCServer) mustEmbedUnimplementedRPCServer() {}
 
@@ -639,56 +611,20 @@ func RegisterRPCServer(s *grpc.Server, srv RPCServer) {
 	s.RegisterService(&_RPC_serviceDesc, srv)
 }
 
-func _RPC_AccountRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AccountRegisterRequest)
+func _RPC_AuthStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RPCServer).AccountRegister(ctx, in)
+		return srv.(RPCServer).AuthStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/service.RPC/AccountRegister",
+		FullMethod: "/service.RPC/AuthStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AccountRegister(ctx, req.(*AccountRegisterRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_AccountCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AccountCreateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AccountCreate(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AccountCreate",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AccountCreate(ctx, req.(*AccountCreateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_AccountStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AccountStatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).AccountStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/AccountStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).AccountStatus(ctx, req.(*AccountStatusRequest))
+		return srv.(RPCServer).AuthStatus(ctx, req.(*AuthStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -761,6 +697,78 @@ func _RPC_RandPassword_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RPCServer).RandPassword(ctx, req.(*RandPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AccountRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountRegisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountRegister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountRegister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountRegister(ctx, req.(*AccountRegisterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AccountCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountCreate(ctx, req.(*AccountCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AccountStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountStatus(ctx, req.(*AccountStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AccountSetUsername_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountSetUsernameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountSetUsername(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountSetUsername",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountSetUsername(ctx, req.(*AccountSetUsernameRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1272,92 +1280,20 @@ func _RPC_Documents_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RPC_OrgKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OrgKeyRequest)
+func _RPC_TeamInvites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TeamInvitesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RPCServer).OrgKey(ctx, in)
+		return srv.(RPCServer).TeamInvites(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/service.RPC/OrgKey",
+		FullMethod: "/service.RPC/TeamInvites",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).OrgKey(ctx, req.(*OrgKeyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_OrgCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OrgCreateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).OrgCreate(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/OrgCreate",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).OrgCreate(ctx, req.(*OrgCreateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_OrgSign_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OrgSignRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).OrgSign(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/OrgSign",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).OrgSign(ctx, req.(*OrgSignRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_OrgInvites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OrgInvitesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).OrgInvites(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/OrgInvites",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).OrgInvites(ctx, req.(*OrgInvitesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RPC_OrgInviteAccept_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OrgInviteAcceptRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RPCServer).OrgInviteAccept(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/service.RPC/OrgInviteAccept",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).OrgInviteAccept(ctx, req.(*OrgInviteAcceptRequest))
+		return srv.(RPCServer).TeamInvites(ctx, req.(*TeamInvitesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1367,16 +1303,8 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*RPCServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AccountRegister",
-			Handler:    _RPC_AccountRegister_Handler,
-		},
-		{
-			MethodName: "AccountCreate",
-			Handler:    _RPC_AccountCreate_Handler,
-		},
-		{
-			MethodName: "AccountStatus",
-			Handler:    _RPC_AccountStatus_Handler,
+			MethodName: "AuthStatus",
+			Handler:    _RPC_AuthStatus_Handler,
 		},
 		{
 			MethodName: "AuthUnlock",
@@ -1393,6 +1321,22 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RandPassword",
 			Handler:    _RPC_RandPassword_Handler,
+		},
+		{
+			MethodName: "AccountRegister",
+			Handler:    _RPC_AccountRegister_Handler,
+		},
+		{
+			MethodName: "AccountCreate",
+			Handler:    _RPC_AccountCreate_Handler,
+		},
+		{
+			MethodName: "AccountStatus",
+			Handler:    _RPC_AccountStatus_Handler,
+		},
+		{
+			MethodName: "AccountSetUsername",
+			Handler:    _RPC_AccountSetUsername_Handler,
 		},
 		{
 			MethodName: "KeyGenerate",
@@ -1503,24 +1447,8 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_Documents_Handler,
 		},
 		{
-			MethodName: "OrgKey",
-			Handler:    _RPC_OrgKey_Handler,
-		},
-		{
-			MethodName: "OrgCreate",
-			Handler:    _RPC_OrgCreate_Handler,
-		},
-		{
-			MethodName: "OrgSign",
-			Handler:    _RPC_OrgSign_Handler,
-		},
-		{
-			MethodName: "OrgInvites",
-			Handler:    _RPC_OrgInvites_Handler,
-		},
-		{
-			MethodName: "OrgInviteAccept",
-			Handler:    _RPC_OrgInviteAccept_Handler,
+			MethodName: "TeamInvites",
+			Handler:    _RPC_TeamInvites_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -10,14 +10,17 @@ import "patch/go.proto";
 
 service RPC {      
   // BEGIN NO AUTH  
-  rpc AccountRegister(AccountRegisterRequest) returns (AccountRegisterResponse) {}   
-  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}   
-  rpc AccountStatus(AccountStatusRequest) returns (AccountStatusResponse) {}
+  rpc AuthStatus(AuthStatusRequest) returns (AuthStatusResponse) {}
   rpc AuthUnlock(AuthUnlockRequest) returns (AuthUnlockResponse) {} 
   rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {}   
   rpc Rand(RandRequest) returns (RandResponse) {}
   rpc RandPassword(RandPasswordRequest) returns (RandPasswordResponse) {}  
   // END NO AUTH  
+
+  rpc AccountRegister(AccountRegisterRequest) returns (AccountRegisterResponse) {}   
+  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}   
+  rpc AccountStatus(AccountStatusRequest) returns (AccountStatusResponse) {}
+  rpc AccountSetUsername(AccountSetUsernameRequest) returns (AccountSetUsernameResponse) {}
 
   rpc KeyGenerate(KeyGenerateRequest) returns (KeyGenerateResponse) {}
   rpc Keys(KeysRequest) returns (KeysResponse) {}
@@ -59,12 +62,8 @@ service RPC {
   rpc Collections(CollectionsRequest) returns (CollectionsResponse) {}
   rpc Documents(DocumentsRequest) returns (DocumentsResponse) {}
 
-  // Org
-  rpc OrgKey(OrgKeyRequest) returns (OrgKeyResponse) {}
-  rpc OrgCreate(OrgCreateRequest) returns (OrgCreateResponse) {}
-  rpc OrgSign(OrgSignRequest) returns (OrgSignResponse) {}
-  rpc OrgInvites(OrgInvitesRequest) returns (OrgInvitesResponse) {}
-  rpc OrgInviteAccept(OrgInviteAcceptRequest) returns (OrgInviteAcceptResponse) {}
+  // Team
+  rpc TeamInvites(TeamInvitesRequest) returns (TeamInvitesResponse) {}
 
 }
 
@@ -76,7 +75,6 @@ message AccountRegisterResponse {}
 message AccountCreateRequest {
   string email = 1;
   string code = 2;
-  string password = 3;
   
   // AccountKey is optional (generated if not specified).
   string accountKey = 10;
@@ -84,9 +82,12 @@ message AccountCreateRequest {
   string clientKey = 11;
   
 }
-message AccountCreateResponse {
-  string authToken = 1;
+message AccountCreateResponse {}
+
+message AccountSetUsernameRequest {
+  string username = 1;
 }
+message AccountSetUsernameResponse {}
 
 enum AuthType {
   option (go.enum) = {name: "AuthType"};
@@ -98,6 +99,19 @@ enum AuthType {
   PAPER_KEY_AUTH = 11 [(go.value) = {name: "PaperKeyAuth"}];
   // FIDO2HMACSecretAuth uses a FIDO2 HMAC-Secret extension.
   FIDO2_HMAC_SECRET_AUTH = 20 [(go.value) = {name: "FIDO2HMACSecretAuth"}];
+}
+
+enum AuthStatus {
+  option (go.enum) = {name: "AuthStatus"};
+  AUTH_UNKNOWN = 0 [(go.value) = {name: "AuthUnknown"}];
+  AUTH_SETUP_NEEDED = 1 [(go.value) = {name: "AuthSetupNeeded"}];  
+  AUTH_UNLOCKED = 2 [(go.value) = {name: "AuthUnlocked"}];  
+  AUTH_LOCKED = 3 [(go.value) = {name: "AuthLocked"}];  
+}
+
+message AuthStatusRequest {}
+message AuthStatusResponse {
+  AuthStatus status = 1;
 }
 
 message AuthUnlockRequest {
@@ -120,10 +134,10 @@ enum AccountStatus {
   option (go.enum) = {name: "AccountStatus"};
 
   ACCOUNT_UNKNOWN = 0 [(go.value) = {name: "AccountUnknown"}];
-  ACCOUNT_SETUP_NEEDED = 1 [(go.value) = {name: "AccountSetupNeeded"}];  
-  ACCOUNT_ORG_NEEDED = 3 [(go.value) = {name: "AccountOrgNeeded"}];  
-  ACCOUNT_REGISTERED = 4 [(go.value) = {name: "AccountRegistered"}];  
-  ACCOUNT_LOCKED = 5 [(go.value) = {name: "AccountLocked"}];  
+  ACCOUNT_CREATE = 1 [(go.value) = {name: "AccountStatusCreate"}];    
+  ACCOUNT_USERNAME = 2 [(go.value) = {name: "AccountStatusUsername"}];    
+  ACCOUNT_ACCEPTANCE = 3 [(go.value) = {name: "AccountStatusAcceptance"}];  
+  ACCOUNT_COMPLETE = 4 [(go.value) = {name: "AccountStatusComplete"}];  
 }
 
 message AccountStatusRequest {}
@@ -137,7 +151,7 @@ message Account {
   bool verified = 3;
 }
 
-message Org {
+message Team {
   string id = 1 [(go.field) = {name: "ID"}];
   string domain = 2;
 }
@@ -440,7 +454,7 @@ enum MessageStatus {
 
 message Message {
   string id = 1 [(go.field) = {name: "ID"}];
-  Key sender = 2;
+  string sender = 2;  
   repeated string text = 10;
   
   MessageStatus status = 20;
@@ -560,38 +574,13 @@ message DocumentsResponse {
   repeated Document documents = 1;
 }
 
-message OrgKeyRequest {
-  string domain = 1;
-}
-message OrgKeyResponse {
-  string kid = 1 [(go.field) = {name: "KID"}];
-  bool created = 2;
-  bool verified = 3;
-}
-
-message OrgSignRequest {
-  string domain = 1;
-}
-message OrgSignResponse {
-  string sig = 1;
-}
-
-message OrgCreateRequest {
-  string domain = 1;
-}
-message OrgCreateResponse {}
-
-message OrgInvite {
-  Org org = 1;
+message TeamInvite {
+  Team team = 1;
   string invitedBy = 2;
 }
 
-message OrgInvitesRequest {}
-message OrgInvitesResponse {
-  repeated OrgInvite invites = 1;
+message TeamInvitesRequest {}
+message TeamInvitesResponse {
+  repeated TeamInvite invites = 1;
 }
 
-message OrgInviteAcceptRequest {
-  string id = 1 [(go.field) = {name: "ID"}];
-}
-message OrgInviteAcceptResponse {}

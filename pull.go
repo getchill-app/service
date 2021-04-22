@@ -5,7 +5,6 @@ import (
 
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/user"
-	"github.com/pkg/errors"
 )
 
 // Pull (RPC) imports a key from the server and updates it.
@@ -28,9 +27,9 @@ func (s *service) Pull(ctx context.Context, req *PullRequest) (*PullResponse, er
 
 	// Update all existing if no kid or user specified
 	pulled := []string{}
-	spks, err := s.edxPublicKeys()
+	spks, err := s.userPublicKeys()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load keys")
+		return nil, err
 	}
 	for _, spk := range spks {
 		res, err := s.pullUser(ctx, spk)
@@ -48,7 +47,7 @@ func (s *service) Pull(ctx context.Context, req *PullRequest) (*PullResponse, er
 
 func (s *service) pullUser(ctx context.Context, kid keys.ID) (*user.Result, error) {
 	logger.Infof("Pull user %s", kid)
-	if err := s.importID(kid); err != nil {
+	if err := s.importID(kid, "user"); err != nil {
 		return nil, err
 	}
 	res, err := s.updateUser(ctx, kid, false)

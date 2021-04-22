@@ -30,7 +30,27 @@ func authErr(err error, typ AuthType, wrap string) error {
 	return errors.Wrapf(err, wrap)
 }
 
+func (s *service) AuthStatus(ctx context.Context, req *AuthStatusRequest) (*AuthStatusResponse, error) {
+	switch s.vault.Status() {
+	case vault.SetupNeeded:
+		return &AuthStatusResponse{Status: AuthSetupNeeded}, nil
+	case vault.Unlocked:
+		return &AuthStatusResponse{Status: AuthUnlocked}, nil
+	case vault.Locked:
+		return &AuthStatusResponse{Status: AuthLocked}, nil
+	default:
+		return &AuthStatusResponse{Status: AuthUnknown}, nil
+	}
+}
+
 func (s *service) AuthUnlock(ctx context.Context, req *AuthUnlockRequest) (*AuthUnlockResponse, error) {
+	// On first unlock, setup.
+	if s.vault.Status() == vault.SetupNeeded {
+		if _, err := s.setup(ctx, req.Secret, req.Type); err != nil {
+			return nil, err
+		}
+	}
+
 	token, _, err := s.authUnlock(ctx, req.Secret, req.Type, req.Client)
 	if err != nil {
 		return nil, err
@@ -117,4 +137,25 @@ func (s *service) authLock(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (s *service) setup(ctx context.Context, secret string, typ AuthType) (*[32]byte, error) {
+	switch typ {
+	case PasswordAuth:
+		mk, err := s.vault.SetupPassword(secret)
+		if err != nil {
+			return nil, authErr(err, typ, "failed to setup")
+		}
+		return mk, nil
+	case PaperKeyAuth:
+		mk, err := s.vault.SetupPaperKey(secret)
+		if err != nil {
+			return nil, authErr(err, typ, "failed to setup")
+		}
+		return mk, nil
+	case FIDO2HMACSecretAuth:
+		return nil, errors.Errorf("not implemented")
+	default:
+		return nil, errors.Errorf("unsupported auth type")
+	}
 }
