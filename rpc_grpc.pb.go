@@ -26,7 +26,10 @@ type RPCClient interface {
 	AccountRegister(ctx context.Context, in *AccountRegisterRequest, opts ...grpc.CallOption) (*AccountRegisterResponse, error)
 	AccountCreate(ctx context.Context, in *AccountCreateRequest, opts ...grpc.CallOption) (*AccountCreateResponse, error)
 	AccountStatus(ctx context.Context, in *AccountStatusRequest, opts ...grpc.CallOption) (*AccountStatusResponse, error)
+	AccountInvite(ctx context.Context, in *AccountInviteRequest, opts ...grpc.CallOption) (*AccountInviteResponse, error)
+	AccountInviteAccept(ctx context.Context, in *AccountInviteAcceptRequest, opts ...grpc.CallOption) (*AccountInviteAcceptResponse, error)
 	AccountSetUsername(ctx context.Context, in *AccountSetUsernameRequest, opts ...grpc.CallOption) (*AccountSetUsernameResponse, error)
+	TeamCreate(ctx context.Context, in *TeamCreateRequest, opts ...grpc.CallOption) (*TeamCreateResponse, error)
 	KeyGenerate(ctx context.Context, in *KeyGenerateRequest, opts ...grpc.CallOption) (*KeyGenerateResponse, error)
 	Keys(ctx context.Context, in *KeysRequest, opts ...grpc.CallOption) (*KeysResponse, error)
 	Key(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*KeyResponse, error)
@@ -52,7 +55,7 @@ type RPCClient interface {
 	ChannelRead(ctx context.Context, in *ChannelReadRequest, opts ...grpc.CallOption) (*ChannelReadResponse, error)
 	// Messages
 	MessagePrepare(ctx context.Context, in *MessagePrepareRequest, opts ...grpc.CallOption) (*MessagePrepareResponse, error)
-	MessageCreate(ctx context.Context, in *MessageCreateRequest, opts ...grpc.CallOption) (*MessageCreateResponse, error)
+	MessageSend(ctx context.Context, in *MessageSendRequest, opts ...grpc.CallOption) (*MessageSendResponse, error)
 	Messages(ctx context.Context, in *MessagesRequest, opts ...grpc.CallOption) (*MessagesResponse, error)
 	// Relay
 	Relay(ctx context.Context, in *RelayRequest, opts ...grpc.CallOption) (RPC_RelayClient, error)
@@ -143,9 +146,36 @@ func (c *rPCClient) AccountStatus(ctx context.Context, in *AccountStatusRequest,
 	return out, nil
 }
 
+func (c *rPCClient) AccountInvite(ctx context.Context, in *AccountInviteRequest, opts ...grpc.CallOption) (*AccountInviteResponse, error) {
+	out := new(AccountInviteResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountInvite", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) AccountInviteAccept(ctx context.Context, in *AccountInviteAcceptRequest, opts ...grpc.CallOption) (*AccountInviteAcceptResponse, error) {
+	out := new(AccountInviteAcceptResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/AccountInviteAccept", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rPCClient) AccountSetUsername(ctx context.Context, in *AccountSetUsernameRequest, opts ...grpc.CallOption) (*AccountSetUsernameResponse, error) {
 	out := new(AccountSetUsernameResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/AccountSetUsername", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) TeamCreate(ctx context.Context, in *TeamCreateRequest, opts ...grpc.CallOption) (*TeamCreateResponse, error) {
+	out := new(TeamCreateResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/TeamCreate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -359,9 +389,9 @@ func (c *rPCClient) MessagePrepare(ctx context.Context, in *MessagePrepareReques
 	return out, nil
 }
 
-func (c *rPCClient) MessageCreate(ctx context.Context, in *MessageCreateRequest, opts ...grpc.CallOption) (*MessageCreateResponse, error) {
-	out := new(MessageCreateResponse)
-	err := c.cc.Invoke(ctx, "/service.RPC/MessageCreate", in, out, opts...)
+func (c *rPCClient) MessageSend(ctx context.Context, in *MessageSendRequest, opts ...grpc.CallOption) (*MessageSendResponse, error) {
+	out := new(MessageSendResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/MessageSend", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +479,10 @@ type RPCServer interface {
 	AccountRegister(context.Context, *AccountRegisterRequest) (*AccountRegisterResponse, error)
 	AccountCreate(context.Context, *AccountCreateRequest) (*AccountCreateResponse, error)
 	AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error)
+	AccountInvite(context.Context, *AccountInviteRequest) (*AccountInviteResponse, error)
+	AccountInviteAccept(context.Context, *AccountInviteAcceptRequest) (*AccountInviteAcceptResponse, error)
 	AccountSetUsername(context.Context, *AccountSetUsernameRequest) (*AccountSetUsernameResponse, error)
+	TeamCreate(context.Context, *TeamCreateRequest) (*TeamCreateResponse, error)
 	KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error)
 	Keys(context.Context, *KeysRequest) (*KeysResponse, error)
 	Key(context.Context, *KeyRequest) (*KeyResponse, error)
@@ -475,7 +508,7 @@ type RPCServer interface {
 	ChannelRead(context.Context, *ChannelReadRequest) (*ChannelReadResponse, error)
 	// Messages
 	MessagePrepare(context.Context, *MessagePrepareRequest) (*MessagePrepareResponse, error)
-	MessageCreate(context.Context, *MessageCreateRequest) (*MessageCreateResponse, error)
+	MessageSend(context.Context, *MessageSendRequest) (*MessageSendResponse, error)
 	Messages(context.Context, *MessagesRequest) (*MessagesResponse, error)
 	// Relay
 	Relay(*RelayRequest, RPC_RelayServer) error
@@ -515,8 +548,17 @@ func (*UnimplementedRPCServer) AccountCreate(context.Context, *AccountCreateRequ
 func (*UnimplementedRPCServer) AccountStatus(context.Context, *AccountStatusRequest) (*AccountStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccountStatus not implemented")
 }
+func (*UnimplementedRPCServer) AccountInvite(context.Context, *AccountInviteRequest) (*AccountInviteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountInvite not implemented")
+}
+func (*UnimplementedRPCServer) AccountInviteAccept(context.Context, *AccountInviteAcceptRequest) (*AccountInviteAcceptResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AccountInviteAccept not implemented")
+}
 func (*UnimplementedRPCServer) AccountSetUsername(context.Context, *AccountSetUsernameRequest) (*AccountSetUsernameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccountSetUsername not implemented")
+}
+func (*UnimplementedRPCServer) TeamCreate(context.Context, *TeamCreateRequest) (*TeamCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TeamCreate not implemented")
 }
 func (*UnimplementedRPCServer) KeyGenerate(context.Context, *KeyGenerateRequest) (*KeyGenerateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeyGenerate not implemented")
@@ -587,8 +629,8 @@ func (*UnimplementedRPCServer) ChannelRead(context.Context, *ChannelReadRequest)
 func (*UnimplementedRPCServer) MessagePrepare(context.Context, *MessagePrepareRequest) (*MessagePrepareResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MessagePrepare not implemented")
 }
-func (*UnimplementedRPCServer) MessageCreate(context.Context, *MessageCreateRequest) (*MessageCreateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MessageCreate not implemented")
+func (*UnimplementedRPCServer) MessageSend(context.Context, *MessageSendRequest) (*MessageSendResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MessageSend not implemented")
 }
 func (*UnimplementedRPCServer) Messages(context.Context, *MessagesRequest) (*MessagesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Messages not implemented")
@@ -755,6 +797,42 @@ func _RPC_AccountStatus_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RPC_AccountInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountInviteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountInvite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountInvite",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountInvite(ctx, req.(*AccountInviteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_AccountInviteAccept_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountInviteAcceptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).AccountInviteAccept(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/AccountInviteAccept",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).AccountInviteAccept(ctx, req.(*AccountInviteAcceptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RPC_AccountSetUsername_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AccountSetUsernameRequest)
 	if err := dec(in); err != nil {
@@ -769,6 +847,24 @@ func _RPC_AccountSetUsername_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RPCServer).AccountSetUsername(ctx, req.(*AccountSetUsernameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_TeamCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TeamCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).TeamCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/TeamCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).TeamCreate(ctx, req.(*TeamCreateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1187,20 +1283,20 @@ func _RPC_MessagePrepare_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RPC_MessageCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MessageCreateRequest)
+func _RPC_MessageSend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MessageSendRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RPCServer).MessageCreate(ctx, in)
+		return srv.(RPCServer).MessageSend(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/service.RPC/MessageCreate",
+		FullMethod: "/service.RPC/MessageSend",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).MessageCreate(ctx, req.(*MessageCreateRequest))
+		return srv.(RPCServer).MessageSend(ctx, req.(*MessageSendRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1335,8 +1431,20 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_AccountStatus_Handler,
 		},
 		{
+			MethodName: "AccountInvite",
+			Handler:    _RPC_AccountInvite_Handler,
+		},
+		{
+			MethodName: "AccountInviteAccept",
+			Handler:    _RPC_AccountInviteAccept_Handler,
+		},
+		{
 			MethodName: "AccountSetUsername",
 			Handler:    _RPC_AccountSetUsername_Handler,
+		},
+		{
+			MethodName: "TeamCreate",
+			Handler:    _RPC_TeamCreate_Handler,
 		},
 		{
 			MethodName: "KeyGenerate",
@@ -1431,8 +1539,8 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RPC_MessagePrepare_Handler,
 		},
 		{
-			MethodName: "MessageCreate",
-			Handler:    _RPC_MessageCreate_Handler,
+			MethodName: "MessageSend",
+			Handler:    _RPC_MessageSend_Handler,
 		},
 		{
 			MethodName: "Messages",

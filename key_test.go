@@ -16,12 +16,11 @@ func TestKey(t *testing.T) {
 	// db.SetLogger(NewLogger(DebugLevel))
 
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
+
 	ctx := context.TODO()
 
-	testAccountCreate(t, service, "alice@keys.pub")
-	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 
 	// Alice
@@ -66,11 +65,11 @@ func TestKey(t *testing.T) {
 
 func TestKeyGenerate(t *testing.T) {
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
+
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub")
-	kr := service.vault.Keyring()
+	kr := service.keyring
 
 	// Generate EdX25519
 	genResp, err := service.KeyGenerate(ctx, &KeyGenerateRequest{Type: string(keys.EdX25519)})
@@ -111,12 +110,12 @@ func TestKeyGenerate(t *testing.T) {
 func TestKeyRemove(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
+
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub")
-	testImportKey(t, service, alice)
-	kr := service.vault.Keyring()
+
+	kr := service.keyring
 
 	genResp, err := service.KeyGenerate(ctx, &KeyGenerateRequest{Type: string(keys.EdX25519)})
 	require.NoError(t, err)
@@ -148,12 +147,10 @@ func TestKeySearch(t *testing.T) {
 	// users.SetLogger(NewLogger(DebugLevel))
 	// user.SetLogger(NewLogger(DebugLevel))
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
 	ctx := context.TODO()
 
-	testAccountCreate(t, service, "alice@keys.pub")
-	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 
 	testImportKey(t, service, bob)

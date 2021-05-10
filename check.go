@@ -72,7 +72,7 @@ func (s *service) tryCheck(ctx context.Context) {
 }
 
 func (s *service) userPublicKeys() ([]keys.ID, error) {
-	pks, err := s.vault.Keyring().KeysWithLabel("user")
+	pks, err := s.keyring.KeysWithLabel("user")
 	if err != nil {
 		return nil, err
 	}

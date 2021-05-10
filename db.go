@@ -103,7 +103,7 @@ func (s *service) dbService(ctx context.Context, path string) ([]*Document, erro
 }
 
 func (s *service) dbKeys() ([]*Document, error) {
-	keys, err := s.vault.Keyring().Keys()
+	keys, err := s.keyring.Keys()
 	if err != nil {
 		return nil, err
 	}

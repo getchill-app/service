@@ -4,17 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/keys-pub/keys"
-	"github.com/keys-pub/vault"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAccountCreate(t *testing.T) {
-	defer SetLogger(NewLogger(DebugLevel))()
-	defer vault.SetLogger(NewLogger(DebugLevel))()
+	// defer SetLogger(NewLogger(DebugLevel))()
 
 	env := newTestServerEnv(t)
-	env.logLevel = DebugLevel
+	// env.logLevel = DebugLevel
 	serviceEnv, closeFn := newTestServiceEnv(t, env)
 	defer closeFn()
 	service := serviceEnv.service
@@ -41,6 +38,16 @@ func TestAccountCreate(t *testing.T) {
 
 	status, err = service.AccountStatus(ctx, &AccountStatusRequest{})
 	require.NoError(t, err)
+	require.Equal(t, AccountStatusInviteCode, status.Status)
+
+	// inviteCode := ""
+	// _, err = service.AccountInviteCode(ctx, &AccountInviteCodeRequest{Code: inviteCode})
+	// require.NoError(t, err)
+	_, err = service.TeamCreate(ctx, &TeamCreateRequest{})
+	require.NoError(t, err)
+
+	status, err = service.AccountStatus(ctx, &AccountStatusRequest{})
+	require.NoError(t, err)
 	require.Equal(t, AccountStatusUsername, status.Status)
 
 	_, err = service.AccountSetUsername(ctx, &AccountSetUsernameRequest{
@@ -50,15 +57,5 @@ func TestAccountCreate(t *testing.T) {
 
 	status, err = service.AccountStatus(ctx, &AccountStatusRequest{})
 	require.NoError(t, err)
-	require.Equal(t, AccountStatusAcceptance, status.Status)
-
-	// Query keys
-	ks, err := service.Keys(ctx, &KeysRequest{})
-	require.NoError(t, err)
-	require.Equal(t, 1, len(ks.Keys))
-	account := ks.Keys[0]
-
-	out, err := service.account(true)
-	require.NoError(t, err)
-	require.Equal(t, out.ID, keys.ID(account.ID))
+	require.Equal(t, AccountStatusComplete, status.Status)
 }

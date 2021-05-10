@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/getchill-app/http/api"
 	chillserver "github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
 	kpserver "github.com/keys-pub/keys-ext/http/server"
@@ -15,7 +16,6 @@ import (
 	"github.com/keys-pub/keys/http"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/keys-pub/keys/users"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -112,6 +112,14 @@ func testAuthSetup(t *testing.T, service *service) {
 	require.NoError(t, err)
 }
 
+func testServiceSetup(t *testing.T, env *testServerEnv, email string, account *keys.EdX25519Key) (*service, CloseFn) {
+	serviceEnv, closeFn := newTestServiceEnv(t, env)
+	service := serviceEnv.service
+	testAuthSetup(t, service)
+	testAccountSetup(t, serviceEnv, email, account)
+	return service, closeFn
+}
+
 func testAccountSetup(t *testing.T, env *serviceEnv, email string, account *keys.EdX25519Key) {
 	ctx := context.TODO()
 	_, err := env.service.AccountRegister(ctx, &AccountRegisterRequest{
@@ -132,8 +140,28 @@ func testAccountSetup(t *testing.T, env *serviceEnv, email string, account *keys
 	require.NoError(t, err)
 }
 
-func testAccountCreate(t *testing.T, service *service, email string) {
-	require.NoError(t, errors.Errorf("not implemented"))
+func testTeamCreate(t *testing.T, service *service, team *keys.EdX25519Key) {
+	_, err := service.TeamCreate(context.TODO(), &TeamCreateRequest{
+		TeamKey: team.PaperKey(),
+	})
+	require.NoError(t, err)
+}
+
+func testAccountInvite(t *testing.T, service *service, email string) string {
+	ctx := context.TODO()
+	resp, err := service.AccountInvite(ctx, &AccountInviteRequest{
+		Email: email,
+	})
+	require.NoError(t, err)
+	return resp.InviteCode
+}
+
+func testAccountInviteAccept(t *testing.T, service *service, code string) {
+	ctx := context.TODO()
+	_, err := service.AccountInviteAccept(ctx, &AccountInviteAcceptRequest{
+		Code: code,
+	})
+	require.NoError(t, err)
 }
 
 type testHTTPServerEnv struct {
@@ -169,12 +197,9 @@ func newTestKeysPubServerEnv(t *testing.T, env *testServerEnv) *testHTTPServerEn
 
 func newTestChillServerEnv(t *testing.T, env *testServerEnv) *testHTTPServerEnv {
 	rds := chillserver.NewRedisTest(env.clock)
-	srv := chillserver.New(env.fi, rds, env.client, env.clock, chillserver.NewLogger(chillserver.LogLevel(env.logLevel)))
+	config := api.Config{RelayURL: "test.getchill.app", RelayAuth: "testRelayAuthToken"}
+	srv := chillserver.New(env.fi, rds, config, env.client, env.clock, chillserver.NewLogger(chillserver.LogLevel(env.logLevel)))
 	srv.SetClock(env.clock)
-	err := srv.SetInternalKey("6a169a699f7683c04d127504a12ace3b326e8b56a61a9b315cf6b42e20d6a44a")
-	require.NoError(t, err)
-	err = srv.SetTokenKey("f41deca7f9ef4f82e53cd7351a90bc370e2bf15ed74d147226439cfde740ac18")
-	require.NoError(t, err)
 	emailer := newTestEmailer()
 	srv.SetEmailer(emailer)
 

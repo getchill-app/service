@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getchill-app/keyring/testutil"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/api"
 	"github.com/keys-pub/keys/http"
-	"github.com/keys-pub/vault/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,11 +21,9 @@ func TestKeys(t *testing.T) {
 	ctx := context.TODO()
 
 	// Alice
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
 
-	testAccountCreate(t, service, "alice@keys.pub")
-	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 
 	testImportKey(t, service, bob)
@@ -116,12 +114,10 @@ func TestKeys(t *testing.T) {
 
 func TestKeysMissingSigchain(t *testing.T) {
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
 	ctx := context.TODO()
 
-	testAccountCreate(t, service, "alice@keys.pub")
-	testImportKey(t, service, alice)
 	testUserSetupGithub(t, env, service, alice, "alice")
 
 	_, err := service.scs.Delete(alice.ID())
@@ -135,6 +131,7 @@ func TestKeysMissingSigchain(t *testing.T) {
 var alice = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x01))
 var bob = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x02))
 var charlie = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x03))
+var team = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x90))
 
 func testImportKey(t *testing.T, service *service, key *keys.EdX25519Key) {
 	encoded, err := api.EncodeKey(api.NewKey(key), "testpassword")

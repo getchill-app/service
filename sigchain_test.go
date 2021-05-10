@@ -10,10 +10,9 @@ import (
 func TestSigchain(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
-	testAccountCreate(t, service, "alice@keys.pub")
-	testImportKey(t, service, alice)
+
 	testUserSetupGithub(t, env, service, alice, "alice")
 
 	sc, err := service.scs.Sigchain(alice.ID())

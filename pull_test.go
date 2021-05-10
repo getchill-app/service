@@ -12,22 +12,20 @@ func TestPull(t *testing.T) {
 	env := newTestServerEnv(t)
 
 	// Alice
-	aliceService, aliceCloseFn := newTestService(t, env)
+	aliceService, aliceCloseFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer aliceCloseFn()
-	testAccountCreate(t, aliceService, "alice@keys.pub")
-	testImportKey(t, aliceService, alice)
+	testTeamCreate(t, aliceService, team)
 	testUserSetupGithub(t, env, aliceService, alice, "alice")
 
 	respKeys, err := aliceService.Keys(ctx, &KeysRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 1, len(respKeys.Keys))
+	require.Equal(t, 2, len(respKeys.Keys))
 	require.Equal(t, alice.ID().String(), respKeys.Keys[0].ID)
 
 	// Bob
-	bobService, bobCloseFn := newTestService(t, env)
+	testAccountInvite(t, aliceService, "bob@keys.pub")
+	bobService, bobCloseFn := testServiceSetup(t, env, "bob@keys.pub", bob)
 	defer bobCloseFn()
-	testAccountCreate(t, bobService, "bob@keys.pub")
-	testImportKey(t, bobService, bob)
 	testUserSetupGithub(t, env, bobService, bob, "bob")
 
 	// Alice (pull bob)
@@ -37,15 +35,14 @@ func TestPull(t *testing.T) {
 	require.Equal(t, bob.ID().String(), resp.KIDs[0])
 	respKeys, err = aliceService.Keys(ctx, &KeysRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 2, len(respKeys.Keys))
+	require.Equal(t, 3, len(respKeys.Keys))
 	require.Equal(t, alice.ID().String(), respKeys.Keys[0].ID)
 	require.Equal(t, bob.ID().String(), respKeys.Keys[1].ID)
 
 	// Charlie
-	charlieService, charlieCloseFn := newTestService(t, env)
+	testAccountInvite(t, aliceService, "charlie@keys.pub")
+	charlieService, charlieCloseFn := testServiceSetup(t, env, "charlie@keys.pub", charlie)
 	defer charlieCloseFn()
-	testAccountCreate(t, charlieService, "charlie@keys.pub")
-	testImportKey(t, charlieService, charlie)
 	testUserSetupGithub(t, env, charlieService, charlie, "charlie")
 
 	// Charlie (pull alice@github)

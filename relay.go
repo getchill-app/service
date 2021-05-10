@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	wsapi "github.com/getchill-app/ws"
+	wsapi "github.com/getchill-app/ws/api"
 	wsclient "github.com/getchill-app/ws/client"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/pkg/errors"
@@ -49,11 +49,11 @@ func (r *relay) Send(out *RelayOutput) {
 	}
 }
 
-func (r *relay) Authorize(tokens []string) {
+func (r *relay) RegisterTokens(tokens []string) {
 	r.Lock()
 	defer r.Unlock()
 	if r.client != nil {
-		if err := r.client.ws.Authorize(tokens); err != nil {
+		if err := r.client.ws.Register(tokens); err != nil {
 			logger.Errorf("Failed to relay auth: %v", err)
 		}
 	}
@@ -63,7 +63,20 @@ func (r *relay) Authorize(tokens []string) {
 func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 	ctx := srv.Context()
 
-	relay, err := wsclient.New("wss://relay.keys.pub/ws")
+	account, err := s.account(true)
+	if err != nil {
+		return err
+	}
+
+	config, err := s.client.Config(ctx, account.AsEdX25519())
+	if err != nil {
+		return err
+	}
+	if config == nil {
+		return errors.Errorf("no config")
+	}
+
+	relay, err := wsclient.New(config.RelayURL, config.RelayAuth)
 	if err != nil {
 		return err
 	}
@@ -83,7 +96,7 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 	}
 
 	logger.Debugf("Relay tokens (%d)", len(tokens))
-	if err := relay.Authorize(tokens); err != nil {
+	if err := relay.Register(tokens); err != nil {
 		return err
 	}
 
@@ -127,20 +140,24 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 				case <-wctx.Done():
 					return errors.Wrapf(wctx.Err(), "relay failed")
 				default:
-					logger.Debugf("Relay event %v", event)
-					if event.KID != "" {
-						if err := s.messenger.SyncVault(ctx, event.KID); err != nil {
-							return err
+					if event.Type == "channel" {
+						logger.Debugf("Relay event %v", event.Channel.KID)
+						if event.Channel.KID != "" {
+							if err := s.PullMessages(ctx, event.Channel.KID); err != nil {
+								return err
+							}
 						}
 					}
 				}
 			}
 			for _, event := range events {
-				out := &RelayOutput{
-					Channel: event.KID.String(),
-				}
-				if err := srv.Send(out); err != nil {
-					return err
+				if event.Type == "channel" {
+					out := &RelayOutput{
+						Channel: event.Channel.KID.String(),
+					}
+					if err := srv.Send(out); err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -148,13 +165,13 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 }
 
 func (s *service) relayTokens(ctx context.Context) ([]string, error) {
-	vaults, err := s.vault.Keyring().Vaults()
+	ks, err := s.keyring.KeysWithLabel("channel")
 	if err != nil {
 		return nil, err
 	}
 	tokens := dstore.NewStringSet()
-	for _, vlt := range vaults {
-		tokens.Add(vlt.Token)
+	for _, k := range ks {
+		tokens.Add(k.ExtString("token"))
 	}
 	return tokens.Strings(), nil
 }

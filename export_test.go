@@ -13,10 +13,10 @@ import (
 func TestKeyExport(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
+
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub")
 
 	genResp, err := service.KeyGenerate(ctx, &KeyGenerateRequest{Type: string(keys.EdX25519)})
 	require.NoError(t, err)
@@ -74,10 +74,9 @@ func TestKeyExport(t *testing.T) {
 func TestKeySSHExport(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub")
 
 	genResp, err := service.KeyGenerate(ctx, &KeyGenerateRequest{Type: string(keys.EdX25519)})
 	require.NoError(t, err)

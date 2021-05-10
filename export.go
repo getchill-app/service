@@ -15,7 +15,7 @@ func (s *service) KeyExport(ctx context.Context, req *KeyExportRequest) (*KeyExp
 		return nil, err
 	}
 
-	key, err := s.vault.Keyring().Key(id)
+	key, err := s.keyring.Key(id)
 	if err != nil {
 		return nil, err
 	}

@@ -18,7 +18,7 @@ func (s *service) Keys(ctx context.Context, req *KeysRequest) (*KeysResponse, er
 	}
 	sortDirection := req.SortDirection
 
-	vks, err := s.vault.Keyring().Keys()
+	vks, err := s.keyring.Keys()
 	if err != nil {
 		return nil, err
 	}

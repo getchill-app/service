@@ -59,7 +59,7 @@ func (s *service) edx25519Key(req string) (*keys.EdX25519Key, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, err := s.vault.Keyring().Key(kid)
+	key, err := s.keyring.Key(kid)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (s *service) edx25519Key(req string) (*keys.EdX25519Key, error) {
 }
 
 func (s *service) key(ctx context.Context, kid keys.ID) (*Key, error) {
-	key, err := s.vault.Keyring().Get(kid)
+	key, err := s.keyring.Get(kid)
 	if err != nil {
 		return nil, err
 	}
@@ -111,11 +111,11 @@ func (s *service) KeyRemove(ctx context.Context, req *KeyRemoveRequest) (*KeyRem
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.vault.Keyring().Key(kid); err != nil {
+	if _, err := s.keyring.Key(kid); err != nil {
 		return nil, err
 	}
 
-	if err := s.vault.Keyring().Remove(kid); err != nil {
+	if err := s.keyring.Remove(kid); err != nil {
 		return nil, err
 	}
 
@@ -150,7 +150,7 @@ func (s *service) KeyGenerate(ctx context.Context, req *KeyGenerateRequest) (*Ke
 	now := s.clock.NowMillis()
 	vk.CreatedAt = now
 	vk.UpdatedAt = now
-	if err := s.vault.Keyring().Set(vk); err != nil {
+	if err := s.keyring.Set(vk); err != nil {
 		return nil, err
 	}
 	if err := s.scs.Index(vk.ID); err != nil {

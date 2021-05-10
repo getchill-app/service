@@ -32,37 +32,10 @@ func (s *service) AccountCreate(ctx context.Context, req *AccountCreateRequest) 
 		return nil, err
 	}
 
-	logger.Debugf("Registering client key...")
-	var clientKey *keys.EdX25519Key
-	if req.ClientKey != "" {
-		c, err := keys.NewEdX25519KeyFromPaperKey(req.ClientKey)
-		if err != nil {
-			return nil, err
-		}
-		clientKey = c
-	} else {
-		clientKey = keys.GenerateEdX25519Key()
-	}
-
-	ck, err := s.vclient.Register(ctx, clientKey, accountKey)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.vault.SetClientKey(ck); err != nil {
-		return nil, err
-	}
-
-	// TODO: Register paper key for backup
-	// logger.Debugf("Saving paper key...")
-	// paperKey := accountKey.PaperKey()
-	// if _, err := s.vault.RegisterPaperKey(paperKey); err != nil {
-	// 	return nil, err
-	// }
-
 	logger.Debugf("Saving account key...")
 	ak := kapi.NewKey(accountKey).WithLabels("account").Created(s.clock.NowMillis())
 	ak.SetExtString("email", req.Email)
-	if err := s.vault.Keyring().Save(ak); err != nil {
+	if err := s.keyring.Set(ak); err != nil {
 		return nil, err
 	}
 
@@ -75,7 +48,7 @@ func (s *service) AccountSetUsername(ctx context.Context, req *AccountSetUsernam
 		return nil, err
 	}
 
-	if err := s.client.AccountSetUsername(ctx, account.AsEdX25519(), req.Username); err != nil {
+	if err := s.client.AccountSetUsername(ctx, req.Username, account.AsEdX25519()); err != nil {
 		return nil, err
 	}
 
@@ -91,6 +64,14 @@ func (s *service) AccountStatus(ctx context.Context, req *AccountStatusRequest) 
 		return &AccountStatusResponse{Status: AccountStatusCreate}, nil
 	}
 
+	team, err := s.team(false)
+	if err != nil {
+		return nil, err
+	}
+	if team == nil {
+		return &AccountStatusResponse{Status: AccountStatusInviteCode}, nil
+	}
+
 	remote, err := s.client.Account(ctx, account.AsEdX25519())
 	if err != nil {
 		return nil, err
@@ -99,31 +80,11 @@ func (s *service) AccountStatus(ctx context.Context, req *AccountStatusRequest) 
 		return &AccountStatusResponse{Status: AccountStatusUsername}, nil
 	}
 
-	team, err := s.team(false)
-	if err != nil {
-		return nil, err
-	}
-	if team == nil {
-		o, err := s.checkInvites(ctx, account.AsEdX25519())
-		if err != nil {
-			return nil, err
-		}
-		team = o
-	}
-	if team == nil {
-		return &AccountStatusResponse{Status: AccountStatusAcceptance}, nil
-	}
-
-	// TODO: Move to app init
-	if err := s.importTeamChannels(ctx); err != nil {
-		return nil, err
-	}
-
 	return &AccountStatusResponse{Status: AccountStatusComplete}, nil
 }
 
 func (s *service) account(required bool) (*kapi.Key, error) {
-	key, err := s.vault.Keyring().KeyWithLabel("account")
+	key, err := s.keyring.KeyWithLabel("account")
 	if err != nil {
 		return nil, err
 	}
@@ -133,33 +94,45 @@ func (s *service) account(required bool) (*kapi.Key, error) {
 	return key, nil
 }
 
-func (s *service) team(required bool) (*kapi.Key, error) {
-	key, err := s.vault.Keyring().KeyWithLabel("team")
+func (s *service) AccountInvite(ctx context.Context, req *AccountInviteRequest) (*AccountInviteResponse, error) {
+	account, err := s.account(true)
 	if err != nil {
 		return nil, err
 	}
-	if required && key == nil {
-		return nil, errors.Errorf("no team")
+	team, err := s.team(false)
+	if err != nil {
+		return nil, err
 	}
-	return key, nil
+	inviteCode, err := s.client.TeamInvite(ctx, team.AsEdX25519(), req.Email, account.AsEdX25519())
+	if err != nil {
+		return nil, err
+	}
+	return &AccountInviteResponse{InviteCode: inviteCode}, nil
 }
 
-func (s *service) checkInvites(ctx context.Context, account *keys.EdX25519Key) (*kapi.Key, error) {
-	invites, err := s.client.TeamAccountInvites(ctx, account)
+func (s *service) AccountInviteAccept(ctx context.Context, req *AccountInviteAcceptRequest) (*AccountInviteAcceptResponse, error) {
+	account, err := s.account(true)
 	if err != nil {
 		return nil, err
 	}
-	for _, invite := range invites {
-		team, err := invite.DecryptKey(account)
-		if err != nil {
-			logger.Errorf("Unable to decrypt invite key %v", err)
-			continue
-		}
-		key := kapi.NewKey(team).Created(s.clock.NowMillis()).WithLabels("team")
-		if err := s.vault.Keyring().Save(key); err != nil {
-			return nil, err
-		}
-		return key, nil
+	existing, err := s.team(false)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	if existing != nil {
+		return nil, errors.Errorf("already in team")
+	}
+	logger.Debugf("Team invite...")
+	team, err := s.client.TeamInviteOpen(ctx, req.Code, account.AsEdX25519())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to open team invite")
+	}
+	if err := s.saveTeam(team); err != nil {
+		return nil, err
+	}
+	if err := s.importTeamChannels(ctx); err != nil {
+		return nil, err
+	}
+
+	return &AccountInviteAcceptResponse{}, nil
 }

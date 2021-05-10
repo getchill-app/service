@@ -10,9 +10,8 @@ import (
 
 func TestUserAddGithub(t *testing.T) {
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
-	testAccountCreate(t, service, "alice@keys.pub")
 
 	testImportKey(t, service, bob)
 

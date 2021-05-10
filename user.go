@@ -92,7 +92,7 @@ func (s *service) UserService(ctx context.Context, req *UserServiceRequest) (*Us
 	if err != nil {
 		return nil, err
 	}
-	key, err := s.vault.Keyring().Key(kid)
+	key, err := s.keyring.Key(kid)
 	if err != nil {
 		return nil, err
 	}

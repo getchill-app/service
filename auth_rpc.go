@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 
+	"github.com/getchill-app/keyring"
+	"github.com/getchill-app/messaging"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/sqlcipher"
-	"github.com/keys-pub/vault"
 	"github.com/pkg/errors"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -18,7 +19,7 @@ var ErrInvalidPassword = status.Error(codes.Unauthenticated, "invalid password")
 var ErrInvalidAuth = status.Error(codes.Unauthenticated, "invalid auth")
 
 func authErr(err error, typ AuthType, wrap string) error {
-	if errors.Cause(err) == vault.ErrInvalidAuth {
+	if errors.Cause(err) == keyring.ErrInvalidAuth {
 		switch typ {
 		case PasswordAuth:
 			return ErrInvalidPassword
@@ -31,12 +32,12 @@ func authErr(err error, typ AuthType, wrap string) error {
 }
 
 func (s *service) AuthStatus(ctx context.Context, req *AuthStatusRequest) (*AuthStatusResponse, error) {
-	switch s.vault.Status() {
-	case vault.SetupNeeded:
+	switch s.keyring.Status() {
+	case keyring.SetupNeeded:
 		return &AuthStatusResponse{Status: AuthSetupNeeded}, nil
-	case vault.Unlocked:
+	case keyring.Unlocked:
 		return &AuthStatusResponse{Status: AuthUnlocked}, nil
-	case vault.Locked:
+	case keyring.Locked:
 		return &AuthStatusResponse{Status: AuthLocked}, nil
 	default:
 		return &AuthStatusResponse{Status: AuthUnknown}, nil
@@ -45,7 +46,7 @@ func (s *service) AuthStatus(ctx context.Context, req *AuthStatusRequest) (*Auth
 
 func (s *service) AuthUnlock(ctx context.Context, req *AuthUnlockRequest) (*AuthUnlockResponse, error) {
 	// On first unlock, setup.
-	if s.vault.Status() == vault.SetupNeeded {
+	if s.keyring.Status() == keyring.SetupNeeded {
 		if _, err := s.setup(ctx, req.Secret, req.Type); err != nil {
 			return nil, err
 		}
@@ -69,6 +70,9 @@ func (s *service) authUnlock(ctx context.Context, secret string, typ AuthType, c
 	if err := s.openDB(ctx, mk); err != nil {
 		return "", nil, err
 	}
+	if err := s.openMessenger(ctx, mk); err != nil {
+		return "", nil, err
+	}
 
 	logger.Infof("Unlocked (%s)", typ)
 	token := s.authIr.registerToken(client)
@@ -81,19 +85,19 @@ func (s *service) authUnlock(ctx context.Context, secret string, typ AuthType, c
 func (s *service) unlock(ctx context.Context, secret string, typ AuthType) (*[32]byte, error) {
 	switch typ {
 	case PasswordAuth:
-		mk, err := s.vault.UnlockWithPassword(secret)
+		mk, err := s.keyring.UnlockWithPassword(secret)
 		if err != nil {
 			return nil, authErr(err, typ, "failed to unlock")
 		}
 		return mk, nil
 	case PaperKeyAuth:
-		mk, err := s.vault.UnlockWithPaperKey(secret)
+		mk, err := s.keyring.UnlockWithPaperKey(secret)
 		if err != nil {
 			return nil, authErr(err, typ, "failed to unlock")
 		}
 		return mk, nil
 	case FIDO2HMACSecretAuth:
-		mk, err := s.vault.UnlockWithFIDO2HMACSecret(ctx, secret)
+		mk, err := s.keyring.UnlockWithFIDO2HMACSecret(ctx, secret)
 		if err != nil {
 			return nil, authErr(err, typ, "failed to unlock")
 		}
@@ -118,6 +122,20 @@ func (s *service) openDB(ctx context.Context, mk *[32]byte) error {
 	return nil
 }
 
+func (s *service) openMessenger(ctx context.Context, mk *[32]byte) error {
+	messagingPath, err := s.env.AppPath("messaging.db", true)
+	if err != nil {
+		return err
+	}
+	dbk := keys.Bytes32(keys.HKDFSHA256(mk[:], 32, nil, []byte("getchill.app/messaging.db")))
+	messenger, err := messaging.NewMessenger(messagingPath, dbk)
+	if err != nil {
+		return err
+	}
+	s.messenger = messenger
+	return nil
+}
+
 func (s *service) AuthLock(ctx context.Context, req *AuthLockRequest) (*AuthLockResponse, error) {
 	if err := s.authLock(ctx); err != nil {
 		return nil, err
@@ -133,7 +151,7 @@ func (s *service) authLock(ctx context.Context) error {
 	s.stopCheck()
 	s.db.Close()
 	s.authIr.clearTokens()
-	if err := s.vault.Lock(); err != nil {
+	if err := s.keyring.Lock(); err != nil {
 		return err
 	}
 	return nil
@@ -142,13 +160,13 @@ func (s *service) authLock(ctx context.Context) error {
 func (s *service) setup(ctx context.Context, secret string, typ AuthType) (*[32]byte, error) {
 	switch typ {
 	case PasswordAuth:
-		mk, err := s.vault.SetupPassword(secret)
+		mk, err := s.keyring.SetupPassword(secret)
 		if err != nil {
 			return nil, authErr(err, typ, "failed to setup")
 		}
 		return mk, nil
 	case PaperKeyAuth:
-		mk, err := s.vault.SetupPaperKey(secret)
+		mk, err := s.keyring.SetupPaperKey(secret)
 		if err != nil {
 			return nil, authErr(err, typ, "failed to setup")
 		}

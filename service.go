@@ -4,15 +4,14 @@ import (
 	"context"
 	sync "sync"
 
+	"github.com/getchill-app/keyring"
+	"github.com/getchill-app/keyring/auth"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys-ext/auth/fido2"
 	kclient "github.com/keys-pub/keys-ext/http/client"
 	"github.com/keys-pub/keys-ext/sqlcipher"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/keys-pub/keys/users"
-	"github.com/keys-pub/vault"
-	"github.com/keys-pub/vault/auth"
-	vclient "github.com/keys-pub/vault/client"
 
 	"github.com/getchill-app/http/client"
 	"github.com/getchill-app/messaging"
@@ -25,15 +24,14 @@ type service struct {
 	build  Build
 	authIr *authInterceptor
 
-	vault *vault.Vault
-
 	db      *sqlcipher.DB
 	client  *client.Client
 	kclient *kclient.Client
-	vclient *vclient.Client
 	scs     *keys.Sigchains
 	users   *users.Users
 	clock   tsutil.Clock
+
+	keyring *keyring.Keyring
 
 	unlockMtx sync.Mutex
 
@@ -65,16 +63,8 @@ func newService(
 	if err != nil {
 		return nil, err
 	}
-	vclient, err := vclient.New(env.ChillServerURL())
-	if err != nil {
-		return nil, err
-	}
-	vclient.SetClock(clock)
-	vault, err := vault.New(path, auth, vault.WithClient(vclient), vault.WithClock(clock))
-	if err != nil {
-		return nil, err
-	}
-	vault.SetFIDO2Plugin(fido2Plugin)
+	keyring := keyring.New(path, auth)
+	keyring.SetFIDO2Plugin(fido2Plugin)
 
 	kclient, err := kclient.New(env.KeysPubServerURL())
 	if err != nil {
@@ -89,7 +79,6 @@ func newService(
 
 	relay := newRelay()
 
-	messenger := messaging.NewMessenger(vault)
 	client, err := client.New(env.ChillServerURL())
 	client.SetClock(clock)
 	if err != nil {
@@ -105,10 +94,8 @@ func newService(
 		db:            db,
 		client:        client,
 		kclient:       kclient,
-		vclient:       vclient,
-		vault:         vault,
+		keyring:       keyring,
 		relay:         relay,
-		messenger:     messenger,
 		clock:         clock,
 		checkCancelFn: func() {},
 	}, nil

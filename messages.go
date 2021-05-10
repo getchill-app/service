@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/getchill-app/messaging"
+	"github.com/getchill-app/http/api"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore/events"
 	"github.com/keys-pub/keys/encoding"
@@ -51,8 +51,8 @@ func processText(s string) string {
 	return strings.TrimSpace(s)
 }
 
-// MessageCreate (RPC) creates a message for a recipient.
-func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) (*MessageCreateResponse, error) {
+// MessageSend (RPC) sends a message to a recipient.
+func (s *service) MessageSend(ctx context.Context, req *MessageSendRequest) (*MessageSendResponse, error) {
 	if req.Channel == "" {
 		return nil, errors.Errorf("no channel specified")
 	}
@@ -63,7 +63,7 @@ func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) 
 		if err != nil {
 			return nil, err
 		}
-		return &MessageCreateResponse{Message: msg}, nil
+		return &MessageSendResponse{Message: msg}, nil
 	}
 
 	account, err := s.account(true)
@@ -75,14 +75,18 @@ func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) 
 	if err != nil {
 		return nil, err
 	}
+	channelKey, err := s.keyring.Key(channel)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: Prev
-	msg := messaging.NewMessage(channel, account.ID).WithText(text).WithTimestamp(s.clock.NowMillis())
+	msg := api.NewMessage(channel, account.ID).WithText(text).WithTimestamp(s.clock.NowMillis())
 	if req.ID != "" {
 		msg.ID = req.ID
 	}
 
-	if err := s.messenger.Send(ctx, msg); err != nil {
+	if err := s.client.SendMessage(ctx, msg, channelKey.AsEdX25519(), account.AsEdX25519()); err != nil {
 		return nil, err
 	}
 
@@ -91,9 +95,36 @@ func (s *service) MessageCreate(ctx context.Context, req *MessageCreateRequest) 
 		return nil, err
 	}
 
-	return &MessageCreateResponse{
+	return &MessageSendResponse{
 		Message: out,
 	}, nil
+}
+
+func (s *service) PullMessages(ctx context.Context, cid keys.ID) error {
+	channel, err := s.messenger.Channel(cid)
+	if err != nil {
+		return err
+	}
+	channelKey, err := s.keyring.Key(cid)
+	if err != nil {
+		return err
+	}
+	index := channel.Index
+	for {
+		logger.Debugf("Pulling messages idx=%d for %s", index, cid)
+		msgs, err := s.client.Messages(ctx, channelKey.AsEdX25519(), index)
+		if err != nil {
+			return err
+		}
+		if err := s.messenger.AddMessages(cid, msgs.Messages); err != nil {
+			return err
+		}
+		if !msgs.Truncated {
+			break
+		}
+		index = msgs.Index
+	}
+	return nil
 }
 
 // Messages (RPC) lists messages.
@@ -104,7 +135,7 @@ func (s *service) Messages(ctx context.Context, req *MessagesRequest) (*Messages
 	}
 
 	if req.Update {
-		if err := s.messenger.SyncVault(ctx, channel); err != nil {
+		if err := s.PullMessages(ctx, channel); err != nil {
 			return nil, err
 		}
 	}
@@ -133,7 +164,7 @@ type MessagesOpts struct {
 	Limit int
 }
 
-func (s *service) messagesToRPC(ctx context.Context, msgs []*messaging.Message) ([]*Message, error) {
+func (s *service) messagesToRPC(ctx context.Context, msgs []*api.Message) ([]*Message, error) {
 	out := make([]*Message, 0, len(msgs))
 	for _, msg := range msgs {
 		m, err := s.messageToRPC(ctx, msg)
@@ -145,7 +176,7 @@ func (s *service) messagesToRPC(ctx context.Context, msgs []*messaging.Message) 
 	return out, nil
 }
 
-func (s *service) messageToRPC(ctx context.Context, msg *messaging.Message) (*Message, error) {
+func (s *service) messageToRPC(ctx context.Context, msg *api.Message) (*Message, error) {
 	if msg == nil {
 		return nil, nil
 	}
@@ -170,7 +201,7 @@ func (s *service) messageToRPC(ctx context.Context, msg *messaging.Message) (*Me
 	}, nil
 }
 
-func (s *service) messageText(ctx context.Context, msg *messaging.Message, sender string) ([]string, error) {
+func (s *service) messageText(ctx context.Context, msg *api.Message, sender string) ([]string, error) {
 	texts := []string{}
 	if msg.Text != "" {
 		texts = append(texts, msg.Text)

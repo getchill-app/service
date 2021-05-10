@@ -12,10 +12,9 @@ import (
 func TestKeyImport(t *testing.T) {
 	// SetLogger(NewLogger(DebugLevel))
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub")
 
 	key := keys.GenerateEdX25519Key()
 	export, err := api.EncodeKey(api.NewKey(key), "testpassword")
@@ -34,7 +33,7 @@ func TestKeyImport(t *testing.T) {
 	require.Equal(t, key.ID().String(), keyResp.Key.ID)
 
 	// Check key
-	kr := service.vault.Keyring()
+	kr := service.keyring
 	out, err := kr.Key(key.ID())
 	require.NoError(t, err)
 	require.NotNil(t, out)
@@ -42,7 +41,7 @@ func TestKeyImport(t *testing.T) {
 
 	sks, err := kr.KeysWithType(string(keys.EdX25519))
 	require.NoError(t, err)
-	require.Equal(t, 1, len(sks))
+	require.Equal(t, 2, len(sks))
 
 	// Import (bob, ID)
 	importResp, err = service.KeyImport(ctx, &KeyImportRequest{
@@ -71,10 +70,9 @@ func TestKeyImportSaltpack(t *testing.T) {
 	END EDX25519 KEY MESSAGE.`
 
 	env := newTestServerEnv(t)
-	service, closeFn := newTestService(t, env)
+	service, closeFn := testServiceSetup(t, env, "alice@keys.pub", alice)
 	defer closeFn()
 	ctx := context.TODO()
-	testAccountCreate(t, service, "alice@keys.pub")
 
 	importResp, err := service.KeyImport(ctx, &KeyImportRequest{
 		In:       []byte(msg),
@@ -85,6 +83,7 @@ func TestKeyImportSaltpack(t *testing.T) {
 
 	keysResp, err := service.Keys(ctx, &KeysRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 1, len(keysResp.Keys))
-	require.Equal(t, "kex16v9uk4t5wykkklpkrcane3p267n8eu95y3fd55yv4h45m6ku3hyqx2a5fn", keysResp.Keys[0].ID)
+	require.Equal(t, 2, len(keysResp.Keys))
+	require.Equal(t, "kex132yw8ht5p8cetl2jmvknewjawt9xwzdlrk2pyxlnwjyqrdq0dawqqph077", keysResp.Keys[0].ID)
+	require.Equal(t, "kex16v9uk4t5wykkklpkrcane3p267n8eu95y3fd55yv4h45m6ku3hyqx2a5fn", keysResp.Keys[1].ID)
 }
