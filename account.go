@@ -9,7 +9,7 @@ import (
 )
 
 func (s *service) AccountRegister(ctx context.Context, req *AccountRegisterRequest) (*AccountRegisterResponse, error) {
-	if err := s.client.AccountRegister(ctx, req.Email); err != nil {
+	if err := s.client.AccountRegister(ctx, req.Email, ""); err != nil {
 		return nil, err
 	}
 	return &AccountRegisterResponse{}, nil
@@ -127,10 +127,10 @@ func (s *service) AccountInviteAccept(ctx context.Context, req *AccountInviteAcc
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open team invite")
 	}
-	if err := s.saveTeam(team); err != nil {
+	if err := s.saveTeam(team.TeamKey); err != nil {
 		return nil, err
 	}
-	if err := s.importTeamChannels(ctx); err != nil {
+	if err := s.updateChannels(ctx); err != nil {
 		return nil, err
 	}
 

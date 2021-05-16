@@ -5,12 +5,12 @@ go 1.16
 require (
 	github.com/alta/protopatch v0.3.4
 	github.com/davecgh/go-spew v1.1.1
-	github.com/getchill-app/http/api v0.0.0-20210504010216-724792fd62e1
+	github.com/getchill-app/http/api v0.0.0-20210515202516-f6305dc12308
 	github.com/getchill-app/http/client v0.0.0-20210504011100-0d36c616cd37
-	github.com/getchill-app/http/server v0.0.0-20210504010821-957671867b63
-	github.com/getchill-app/keyring v0.0.0-20210430214439-c21449557217
+	github.com/getchill-app/http/server v0.0.0-20210510182642-e681eced1611
+	github.com/getchill-app/keyring v0.0.0-20210510182950-cf0123330ce2
 	github.com/getchill-app/messaging v0.0.0-20210328173043-840bde55799b
-	github.com/getchill-app/ws/api v0.0.0-20210504010258-9e1738caa70d
+	github.com/getchill-app/ws/api v0.0.0-20210515202614-2e7dadf92402
 	github.com/getchill-app/ws/client v0.0.0-20210402213525-39307cde11c0
 	github.com/golang/protobuf v1.5.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2

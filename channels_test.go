@@ -30,20 +30,21 @@ func TestChannelMessages(t *testing.T) {
 		Name: "testing",
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, channelCreate.Channel)
-	channel := channelCreate.Channel
+	require.NotEmpty(t, channelCreate.ID)
 
 	// Channels (alice)
-	channelsAlice, err := aliceService.Channels(ctx, &ChannelsRequest{})
+	channelsAlice, err := aliceService.Channels(ctx, &ChannelsRequest{
+		Update: true,
+	})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(channelsAlice.Channels))
 	require.Equal(t, "testing", channelsAlice.Channels[0].Name)
 
-	msgAlice, err := aliceService.MessageSend(ctx, &MessageSendRequest{Channel: channel.ID, Text: "hi bob"})
+	msgAlice, err := aliceService.MessageSend(ctx, &MessageSendRequest{Channel: channelCreate.ID, Text: "hi bob"})
 	require.NoError(t, err)
 	require.NotEmpty(t, msgAlice.Message.ID)
 
-	msgsAlice, err := aliceService.Messages(ctx, &MessagesRequest{Channel: channel.ID, Update: true})
+	msgsAlice, err := aliceService.Messages(ctx, &MessagesRequest{Channel: channelCreate.ID, Update: true})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(msgsAlice.Messages))
 	require.Equal(t, []string{"hi bob"}, msgsAlice.Messages[0].Text)
@@ -71,7 +72,7 @@ func TestChannelMessages(t *testing.T) {
 	require.Equal(t, 1, len(channelsBob.Channels))
 	require.Equal(t, "testing", channelsBob.Channels[0].Name)
 
-	msgsBob, err := bobService.Messages(ctx, &MessagesRequest{Channel: channel.ID, Update: true})
+	msgsBob, err := bobService.Messages(ctx, &MessagesRequest{Channel: channelsBob.Channels[0].ID, Update: true})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(msgsBob.Messages))
 	require.Equal(t, []string{"hi bob"}, msgsBob.Messages[0].Text)

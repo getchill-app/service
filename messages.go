@@ -116,6 +116,9 @@ func (s *service) PullMessages(ctx context.Context, cid keys.ID) error {
 		if err != nil {
 			return err
 		}
+		if msgs == nil {
+			break
+		}
 		if err := s.messenger.AddMessages(cid, msgs.Messages); err != nil {
 			return err
 		}

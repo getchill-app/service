@@ -100,11 +100,6 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 		return err
 	}
 
-	// Send empty message to ui after connect and auth
-	if err := srv.Send(&RelayOutput{}); err != nil {
-		return err
-	}
-
 	chEvents := make(chan []*wsapi.Event)
 
 	wctx, cancel := context.WithCancel(ctx)
@@ -121,6 +116,15 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 			chEvents <- events
 		}
 	}()
+
+	if err := s.updateChannels(ctx); err != nil {
+		return err
+	}
+
+	// Send relay event after connect/register/update
+	if err := srv.Send(&RelayOutput{Type: "connected"}); err != nil {
+		return err
+	}
 
 	ticker := time.NewTicker(50 * time.Second)
 
@@ -140,28 +144,43 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 				case <-wctx.Done():
 					return errors.Wrapf(wctx.Err(), "relay failed")
 				default:
-					if event.Type == "channel" {
-						logger.Debugf("Relay event %v", event.Channel.KID)
-						if event.Channel.KID != "" {
-							if err := s.PullMessages(ctx, event.Channel.KID); err != nil {
+					switch event.Type {
+					case wsapi.ChannelType:
+						if event.Channel != nil && event.Channel.ID != "" {
+							logger.Debugf("Channel event %s", event.Channel.ID)
+							if err := s.PullMessages(ctx, event.Channel.ID); err != nil {
 								return err
 							}
+						}
+					case wsapi.ChannelsType:
+						logger.Debugf("Channels event")
+						if err := s.updateChannels(ctx); err != nil {
+							return err
 						}
 					}
 				}
 			}
 			for _, event := range events {
-				if event.Type == "channel" {
-					out := &RelayOutput{
-						Channel: event.Channel.KID.String(),
-					}
-					if err := srv.Send(out); err != nil {
-						return err
-					}
+				out := relayEventToRPC(event)
+				if err := srv.Send(out); err != nil {
+					return err
 				}
 			}
 		}
 	}
+}
+
+func relayEventToRPC(event *wsapi.Event) *RelayOutput {
+	out := &RelayOutput{
+		Type: string(event.Type),
+	}
+	if event.Channel != nil {
+		out.Channel = &RelayOutput_Channel{
+			ID:    event.Channel.ID.String(),
+			Index: event.Channel.Index,
+		}
+	}
+	return out
 }
 
 func (s *service) relayTokens(ctx context.Context) ([]string, error) {
@@ -171,7 +190,11 @@ func (s *service) relayTokens(ctx context.Context) ([]string, error) {
 	}
 	tokens := dstore.NewStringSet()
 	for _, k := range ks {
-		tokens.Add(k.ExtString("token"))
+		if k.ExtString("token") != "" {
+			tokens.Add(k.ExtString("token"))
+		} else {
+			logger.Warningf("Missing token for channel %s", k.ID)
+		}
 	}
 	return tokens.Strings(), nil
 }

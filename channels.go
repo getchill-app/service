@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/getchill-app/http/api"
@@ -13,6 +14,11 @@ import (
 )
 
 func (s *service) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
+	if req.Update {
+		if err := s.updateChannels(ctx); err != nil {
+			return nil, err
+		}
+	}
 	channels, err := s.messenger.Channels()
 	if err != nil {
 		return nil, err
@@ -24,6 +30,9 @@ func (s *service) Channels(ctx context.Context, req *ChannelsRequest) (*Channels
 		}
 		out = append(out, channelToRPC(channel))
 	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].Name < out[j].Name
+	})
 	return &ChannelsResponse{
 		Channels: out,
 	}, nil
@@ -51,46 +60,22 @@ func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) 
 	logger.Debugf("Creating channel %s", channelKey.ID())
 	info := &api.ChannelInfo{Name: name}
 
-	token := ""
 	if !req.Private {
 		team, err := s.team(true)
 		if err != nil {
 			return nil, err
 		}
-		t, err := s.client.TeamCreateChannel(ctx, team.ID, channelKey, info, account.AsEdX25519())
-		if err != nil {
+		if _, err := s.client.ChannelCreateWithTeam(ctx, channelKey, info, team.ID, account.AsEdX25519()); err != nil {
 			return nil, err
 		}
-		token = t
 	} else {
 		return nil, errors.Errorf("not implemented")
 	}
 
-	key := kapi.NewKey(channelKey).WithLabels("channel")
-	key.SetExtString("token", token)
-	if err := s.keyring.Set(key); err != nil {
-		return nil, err
-	}
-	if err := s.messenger.AddChannel(channelKey.ID()); err != nil {
-		return nil, err
-	}
-	if err := s.messenger.UpdateChannelInfo(channelKey.ID(), info); err != nil {
-		return nil, err
-	}
-
-	out, err := s.messenger.Channel(channelKey.ID())
-	if err != nil {
-		return nil, err
-	}
-
-	logger.Debugf("Relay...")
-	s.relay.RegisterTokens([]string{token})
-	s.relay.Send(&RelayOutput{
-		Channel: channelKey.ID().String(),
-	})
+	// Relay will get the update, or manually update channels list if not listening on relay.
 
 	return &ChannelCreateResponse{
-		Channel: channelToRPC(out),
+		ID: channelKey.ID().String(),
 	}, nil
 }
 
@@ -128,22 +113,35 @@ func (s *service) ChannelLeave(ctx context.Context, req *ChannelLeaveRequest) (*
 	return &ChannelLeaveResponse{}, nil
 }
 
-func (s *service) importTeamChannels(ctx context.Context) error {
-	logger.Debugf("Import team channels...")
+func (s *service) updateChannels(ctx context.Context) error {
+	logger.Debugf("List channels...")
+	account, err := s.account(true)
+	if err != nil {
+		return err
+	}
 	team, err := s.team(true)
 	if err != nil {
 		return err
 	}
-	channels, err := s.client.TeamChannelKeys(ctx, team.AsEdX25519())
+	channels, err := s.client.Channels(ctx, team.ID, account.AsEdX25519())
 	if err != nil {
 		return err
 	}
 	logger.Debugf("Found %d channel(s)", len(channels))
 	for _, channel := range channels {
-		logger.Debugf("Importing channel %s", channel.ID)
-		channelKey, err := api.DecryptKey(channel.EncryptedKey, team.AsEdX25519())
-		if err != nil {
-			return err
+		var channelKey *keys.EdX25519Key
+		if channel.TeamKey != nil {
+			k, err := api.DecryptKey(channel.TeamKey, team.AsEdX25519())
+			if err != nil {
+				return err
+			}
+			channelKey = k
+		} else if channel.UserKey != nil {
+			k, err := api.DecryptKey(channel.UserKey, account.AsEdX25519())
+			if err != nil {
+				return err
+			}
+			channelKey = k
 		}
 		key, err := s.keyring.Get(channelKey.ID())
 		if err != nil {
@@ -152,18 +150,40 @@ func (s *service) importTeamChannels(ctx context.Context) error {
 		if key == nil {
 			key = kapi.NewKey(channelKey).Created(s.clock.NowMillis()).WithLabels("channel")
 			key.SetExtString("token", channel.Token)
-			logger.Debugf("Saving channel key %s", key.ID)
+			logger.Debugf("Saving channel %s", key.ID)
 			if err := s.keyring.Set(key); err != nil {
 				return err
 			}
 			if err := s.messenger.AddChannel(channelKey.ID()); err != nil {
 				return err
 			}
-			info := channel.Info(channelKey)
+			info := channel.DecryptInfo(channelKey)
 			if info != nil {
 				if err := s.messenger.UpdateChannelInfo(channelKey.ID(), info); err != nil {
 					return err
 				}
+			}
+		}
+
+		// Update token
+		if key.ExtString("token") == channel.Token {
+			key.SetExtString("token", channel.Token)
+			if err := s.keyring.Set(key); err != nil {
+				return err
+			}
+		}
+
+		logger.Debugf("Register token...")
+		s.relay.RegisterTokens([]string{channel.Token})
+
+		// Check if we need to update messages
+		c, err := s.messenger.Channel(channelKey.ID())
+		if err != nil {
+			return err
+		}
+		if c != nil && c.Index != channel.Index {
+			if err := s.PullMessages(ctx, channelKey.ID()); err != nil {
+				return err
 			}
 		}
 	}

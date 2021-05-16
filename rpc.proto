@@ -14,7 +14,7 @@ service RPC {
   rpc AuthUnlock(AuthUnlockRequest) returns (AuthUnlockResponse) {} 
   rpc AuthLock(AuthLockRequest) returns (AuthLockResponse) {}   
   rpc Rand(RandRequest) returns (RandResponse) {}
-  rpc RandPassword(RandPasswordRequest) returns (RandPasswordResponse) {}  
+  rpc RandPassword(RandPasswordRequest) returns (RandPasswordResponse) {}
   // END NO AUTH  
 
   rpc AccountRegister(AccountRegisterRequest) returns (AccountRegisterResponse) {}   
@@ -523,9 +523,11 @@ message Channel {
   int64 readIndex = 10;
 }
 
-message ChannelsRequest {}
+message ChannelsRequest {
+  bool update = 1;
+}
 message ChannelsResponse {
-  repeated Channel channels = 1;  
+  repeated Channel channels = 1;
 }
 
 message ChannelCreateRequest {
@@ -533,7 +535,7 @@ message ChannelCreateRequest {
   bool private = 2;
 }
 message ChannelCreateResponse {
-  Channel channel = 1;
+  string id = 1 [(go.field) = {name: "ID"}];
 }
 
 message ChannelLeaveRequest {
@@ -557,9 +559,14 @@ message ChannelInviteResponse {
 
 message RelayRequest {}
 
-message RelayOutput {
-  string channel = 1;
-  int64 index = 2;
+message RelayOutput {  
+  message Channel {
+    string id = 1 [(go.field) = {name: "ID"}];
+    int64 index = 2;
+  }
+
+  string type = 1;
+  Channel channel = 2;
 }
 
 message Collection {
