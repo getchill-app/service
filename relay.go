@@ -90,16 +90,6 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 	s.relay.Register(client)
 	defer s.relay.Unregister(client)
 
-	tokens, err := s.relayTokens(ctx)
-	if err != nil {
-		return err
-	}
-
-	logger.Debugf("Relay tokens (%d)", len(tokens))
-	if err := relay.Register(tokens); err != nil {
-		return err
-	}
-
 	chEvents := make(chan []*wsapi.Event)
 
 	wctx, cancel := context.WithCancel(ctx)
@@ -118,6 +108,15 @@ func (s *service) Relay(req *RelayRequest, srv RPC_RelayServer) error {
 	}()
 
 	if err := s.updateChannels(ctx); err != nil {
+		return err
+	}
+
+	tokens, err := s.relayTokens(ctx)
+	if err != nil {
+		return err
+	}
+	logger.Debugf("Relay tokens (%d)", len(tokens))
+	if err := relay.Register(tokens); err != nil {
 		return err
 	}
 

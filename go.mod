@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/alta/protopatch v0.3.4
 	github.com/davecgh/go-spew v1.1.1
-	github.com/getchill-app/http/api v0.0.0-20210515202516-f6305dc12308
+	github.com/getchill-app/http/api v0.0.0-20210520194543-13fdf5e518c2
 	github.com/getchill-app/http/client v0.0.0-20210504011100-0d36c616cd37
 	github.com/getchill-app/http/server v0.0.0-20210510182642-e681eced1611
 	github.com/getchill-app/keyring v0.0.0-20210510182950-cf0123330ce2
@@ -27,6 +27,8 @@ require (
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.26.0
 )
+
+replace github.com/mutecomm/go-sqlcipher/v4 => github.com/getchill-app/go-sqlcipher/v4 v4.4.3-0.20210518231725-725caa68982f
 
 replace github.com/keys-pub/keys => ../../keys.pub/keys
 

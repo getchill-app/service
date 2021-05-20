@@ -53,6 +53,9 @@ type RPCClient interface {
 	ChannelInvite(ctx context.Context, in *ChannelInviteRequest, opts ...grpc.CallOption) (*ChannelInviteResponse, error)
 	ChannelLeave(ctx context.Context, in *ChannelLeaveRequest, opts ...grpc.CallOption) (*ChannelLeaveResponse, error)
 	ChannelRead(ctx context.Context, in *ChannelReadRequest, opts ...grpc.CallOption) (*ChannelReadResponse, error)
+	ChannelUsers(ctx context.Context, in *ChannelUsersRequest, opts ...grpc.CallOption) (*ChannelUsersResponse, error)
+	ChannelUsersAdd(ctx context.Context, in *ChannelUsersAddRequest, opts ...grpc.CallOption) (*ChannelUsersAddResponse, error)
+	ChannelUsersRemove(ctx context.Context, in *ChannelUsersRemoveRequest, opts ...grpc.CallOption) (*ChannelUsersRemoveResponse, error)
 	// Messages
 	MessagePrepare(ctx context.Context, in *MessagePrepareRequest, opts ...grpc.CallOption) (*MessagePrepareResponse, error)
 	MessageSend(ctx context.Context, in *MessageSendRequest, opts ...grpc.CallOption) (*MessageSendResponse, error)
@@ -380,6 +383,33 @@ func (c *rPCClient) ChannelRead(ctx context.Context, in *ChannelReadRequest, opt
 	return out, nil
 }
 
+func (c *rPCClient) ChannelUsers(ctx context.Context, in *ChannelUsersRequest, opts ...grpc.CallOption) (*ChannelUsersResponse, error) {
+	out := new(ChannelUsersResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/ChannelUsers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) ChannelUsersAdd(ctx context.Context, in *ChannelUsersAddRequest, opts ...grpc.CallOption) (*ChannelUsersAddResponse, error) {
+	out := new(ChannelUsersAddResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/ChannelUsersAdd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rPCClient) ChannelUsersRemove(ctx context.Context, in *ChannelUsersRemoveRequest, opts ...grpc.CallOption) (*ChannelUsersRemoveResponse, error) {
+	out := new(ChannelUsersRemoveResponse)
+	err := c.cc.Invoke(ctx, "/service.RPC/ChannelUsersRemove", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rPCClient) MessagePrepare(ctx context.Context, in *MessagePrepareRequest, opts ...grpc.CallOption) (*MessagePrepareResponse, error) {
 	out := new(MessagePrepareResponse)
 	err := c.cc.Invoke(ctx, "/service.RPC/MessagePrepare", in, out, opts...)
@@ -506,6 +536,9 @@ type RPCServer interface {
 	ChannelInvite(context.Context, *ChannelInviteRequest) (*ChannelInviteResponse, error)
 	ChannelLeave(context.Context, *ChannelLeaveRequest) (*ChannelLeaveResponse, error)
 	ChannelRead(context.Context, *ChannelReadRequest) (*ChannelReadResponse, error)
+	ChannelUsers(context.Context, *ChannelUsersRequest) (*ChannelUsersResponse, error)
+	ChannelUsersAdd(context.Context, *ChannelUsersAddRequest) (*ChannelUsersAddResponse, error)
+	ChannelUsersRemove(context.Context, *ChannelUsersRemoveRequest) (*ChannelUsersRemoveResponse, error)
 	// Messages
 	MessagePrepare(context.Context, *MessagePrepareRequest) (*MessagePrepareResponse, error)
 	MessageSend(context.Context, *MessageSendRequest) (*MessageSendResponse, error)
@@ -625,6 +658,15 @@ func (*UnimplementedRPCServer) ChannelLeave(context.Context, *ChannelLeaveReques
 }
 func (*UnimplementedRPCServer) ChannelRead(context.Context, *ChannelReadRequest) (*ChannelReadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChannelRead not implemented")
+}
+func (*UnimplementedRPCServer) ChannelUsers(context.Context, *ChannelUsersRequest) (*ChannelUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChannelUsers not implemented")
+}
+func (*UnimplementedRPCServer) ChannelUsersAdd(context.Context, *ChannelUsersAddRequest) (*ChannelUsersAddResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChannelUsersAdd not implemented")
+}
+func (*UnimplementedRPCServer) ChannelUsersRemove(context.Context, *ChannelUsersRemoveRequest) (*ChannelUsersRemoveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChannelUsersRemove not implemented")
 }
 func (*UnimplementedRPCServer) MessagePrepare(context.Context, *MessagePrepareRequest) (*MessagePrepareResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MessagePrepare not implemented")
@@ -1265,6 +1307,60 @@ func _RPC_ChannelRead_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RPC_ChannelUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).ChannelUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/ChannelUsers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).ChannelUsers(ctx, req.(*ChannelUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_ChannelUsersAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelUsersAddRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).ChannelUsersAdd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/ChannelUsersAdd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).ChannelUsersAdd(ctx, req.(*ChannelUsersAddRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RPC_ChannelUsersRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelUsersRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCServer).ChannelUsersRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RPC/ChannelUsersRemove",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCServer).ChannelUsersRemove(ctx, req.(*ChannelUsersRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RPC_MessagePrepare_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MessagePrepareRequest)
 	if err := dec(in); err != nil {
@@ -1533,6 +1629,18 @@ var _RPC_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChannelRead",
 			Handler:    _RPC_ChannelRead_Handler,
+		},
+		{
+			MethodName: "ChannelUsers",
+			Handler:    _RPC_ChannelUsers_Handler,
+		},
+		{
+			MethodName: "ChannelUsersAdd",
+			Handler:    _RPC_ChannelUsersAdd_Handler,
+		},
+		{
+			MethodName: "ChannelUsersRemove",
+			Handler:    _RPC_ChannelUsersRemove_Handler,
 		},
 		{
 			MethodName: "MessagePrepare",

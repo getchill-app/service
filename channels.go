@@ -25,9 +25,6 @@ func (s *service) Channels(ctx context.Context, req *ChannelsRequest) (*Channels
 	}
 	out := make([]*Channel, 0, len(channels))
 	for _, channel := range channels {
-		if channel.Visibility == messaging.VisibilityHidden {
-			continue
-		}
 		out = append(out, channelToRPC(channel))
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -58,7 +55,7 @@ func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) 
 	// Create channel key
 	channelKey := keys.GenerateEdX25519Key()
 	logger.Debugf("Creating channel %s", channelKey.ID())
-	info := &api.ChannelInfo{Name: name}
+	info := &api.ChannelInfo{Name: name, Description: req.Description}
 
 	if !req.Private {
 		team, err := s.team(true)
@@ -69,7 +66,9 @@ func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) 
 			return nil, err
 		}
 	} else {
-		return nil, errors.Errorf("not implemented")
+		if _, err := s.client.ChannelCreateWithUsers(ctx, channelKey, info, []keys.ID{account.ID}, account.AsEdX25519()); err != nil {
+			return nil, err
+		}
 	}
 
 	// Relay will get the update, or manually update channels list if not listening on relay.
@@ -79,21 +78,98 @@ func (s *service) ChannelCreate(ctx context.Context, req *ChannelCreateRequest) 
 	}, nil
 }
 
+func (s *service) ChannelUsers(ctx context.Context, req *ChannelUsersRequest) (*ChannelUsersResponse, error) {
+	cid, err := keys.ParseID(req.Channel)
+	if err != nil {
+		return nil, err
+	}
+	channelKey, err := s.keyring.Key(cid)
+	if err != nil {
+		return nil, err
+	}
+	users, err := s.client.ChannelUsers(ctx, channelKey.AsEdX25519())
+	if err != nil {
+		return nil, err
+	}
+	out := []*ChannelUser{}
+	for _, u := range users {
+		name, err := s.userName(ctx, u)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, &ChannelUser{
+			ID:   u.String(),
+			Name: name,
+		})
+	}
+	return &ChannelUsersResponse{Users: out}, nil
+}
+
+func (s *service) ChannelUsersAdd(ctx context.Context, req *ChannelUsersAddRequest) (*ChannelUsersAddResponse, error) {
+	cid, err := keys.ParseID(req.Channel)
+	if err != nil {
+		return nil, err
+	}
+	channelKey, err := s.keyring.Key(cid)
+	if err != nil {
+		return nil, err
+	}
+	users := []keys.ID{}
+	for _, u := range req.Users {
+		user, err := keys.ParseID(u)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err := s.client.ChannelUsersAdd(ctx, channelKey.AsEdX25519(), users); err != nil {
+		return nil, err
+	}
+	return &ChannelUsersAddResponse{}, nil
+}
+
+func (s *service) ChannelUsersRemove(ctx context.Context, req *ChannelUsersRemoveRequest) (*ChannelUsersRemoveResponse, error) {
+	cid, err := keys.ParseID(req.Channel)
+	if err != nil {
+		return nil, err
+	}
+	channelKey, err := s.keyring.Key(cid)
+	if err != nil {
+		return nil, err
+	}
+	users := []keys.ID{}
+	for _, u := range req.Users {
+		user, err := keys.ParseID(u)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err := s.client.ChannelUsersRemove(ctx, channelKey.AsEdX25519(), users); err != nil {
+		return nil, err
+	}
+	return &ChannelUsersRemoveResponse{}, nil
+}
+
 func channelToRPC(channel *messaging.Channel) *Channel {
 	if channel == nil {
 		return nil
 	}
-	return &Channel{
-		ID:        channel.ID.String(),
-		Name:      channel.Name,
-		Snippet:   channel.Snippet,
-		Index:     channel.Index,
-		ReadIndex: channel.ReadIndex,
-	}
-}
 
-func (s *service) ChannelInvite(ctx context.Context, req *ChannelInviteRequest) (*ChannelInviteResponse, error) {
-	return nil, errors.Errorf("not implemented")
+	c := &Channel{
+		ID:      channel.ID.String(),
+		Name:    channel.Name,
+		Snippet: channel.Snippet,
+		Index:   channel.MessageIndex,
+	}
+	if channel.Team != "" {
+		c.Type = TeamChannelType
+	} else {
+		c.Type = UsersChannelType
+	}
+	return c
 }
 
 func (s *service) ChannelRead(ctx context.Context, req *ChannelReadRequest) (*ChannelReadResponse, error) {
@@ -101,16 +177,11 @@ func (s *service) ChannelRead(ctx context.Context, req *ChannelReadRequest) (*Ch
 }
 
 func (s *service) ChannelLeave(ctx context.Context, req *ChannelLeaveRequest) (*ChannelLeaveResponse, error) {
-	channel, err := keys.ParseID(req.Channel)
-	if err != nil {
-		return nil, errors.Wrapf(err, "invalid channel")
-	}
-
-	if err := s.messenger.HideChannel(ctx, channel); err != nil {
-		return nil, err
-	}
-
-	return &ChannelLeaveResponse{}, nil
+	// channel, err := keys.ParseID(req.Channel)
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err, "invalid channel")
+	// }
+	return nil, errors.Errorf("not implemented")
 }
 
 func (s *service) updateChannels(ctx context.Context) error {
@@ -154,34 +225,41 @@ func (s *service) updateChannels(ctx context.Context) error {
 			if err := s.keyring.Set(key); err != nil {
 				return err
 			}
-			if err := s.messenger.AddChannel(channelKey.ID()); err != nil {
-				return err
-			}
-			info := channel.DecryptInfo(channelKey)
-			if info != nil {
-				if err := s.messenger.UpdateChannelInfo(channelKey.ID(), info); err != nil {
-					return err
-				}
-			}
 		}
 
 		// Update token
-		if key.ExtString("token") == channel.Token {
+		if key.ExtString("token") != channel.Token {
+			logger.Debugf("Updating channel token for %s", channel.ID)
 			key.SetExtString("token", channel.Token)
 			if err := s.keyring.Set(key); err != nil {
 				return err
 			}
 		}
 
-		logger.Debugf("Register token...")
-		s.relay.RegisterTokens([]string{channel.Token})
-
-		// Check if we need to update messages
-		c, err := s.messenger.Channel(channelKey.ID())
+		// Check channel
+		existing, err := s.messenger.Channel(channelKey.ID())
 		if err != nil {
 			return err
 		}
-		if c != nil && c.Index != channel.Index {
+
+		ch, err := messaging.NewChannelFromAPI(channel, channelKey)
+		if err != nil {
+			return err
+		}
+
+		// If we don't have it, add it
+		if existing == nil {
+			if err := s.messenger.AddChannel(ch); err != nil {
+				return err
+			}
+		} else {
+			if err := s.messenger.UpdateChannel(ch); err != nil {
+				return err
+			}
+		}
+
+		// Check if we need to pull messages
+		if ch.MessageIndex != channel.Index {
 			if err := s.PullMessages(ctx, channelKey.ID()); err != nil {
 				return err
 			}

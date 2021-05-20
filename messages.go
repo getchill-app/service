@@ -81,7 +81,9 @@ func (s *service) MessageSend(ctx context.Context, req *MessageSendRequest) (*Me
 	}
 
 	// TODO: Prev
-	msg := api.NewMessage(channel, account.ID).WithText(text).WithTimestamp(s.clock.NowMillis())
+	msg := api.NewMessage(channel, account.ID).
+		WithText(text).
+		WithTimestamp(s.clock.NowMillis())
 	if req.ID != "" {
 		msg.ID = req.ID
 	}
@@ -109,7 +111,7 @@ func (s *service) PullMessages(ctx context.Context, cid keys.ID) error {
 	if err != nil {
 		return err
 	}
-	index := channel.Index
+	index := channel.MessageIndex
 	for {
 		logger.Debugf("Pulling messages idx=%d for %s", index, cid)
 		msgs, err := s.client.Messages(ctx, channelKey.AsEdX25519(), index)
@@ -117,8 +119,10 @@ func (s *service) PullMessages(ctx context.Context, cid keys.ID) error {
 			return err
 		}
 		if msgs == nil {
+			logger.Debugf("No messages")
 			break
 		}
+		logger.Debugf("Found %d message(s)", len(msgs.Messages))
 		if err := s.messenger.AddMessages(cid, msgs.Messages); err != nil {
 			return err
 		}

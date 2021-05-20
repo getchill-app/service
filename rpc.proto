@@ -48,10 +48,13 @@ service RPC {
   
   // Channels
   rpc Channels(ChannelsRequest) returns (ChannelsResponse) {}
-  rpc ChannelCreate(ChannelCreateRequest) returns (ChannelCreateResponse) {}
+  rpc ChannelCreate(ChannelCreateRequest) returns (ChannelCreateResponse) {}  
   rpc ChannelInvite(ChannelInviteRequest) returns (ChannelInviteResponse) {}
   rpc ChannelLeave(ChannelLeaveRequest) returns (ChannelLeaveResponse) {}
   rpc ChannelRead(ChannelReadRequest) returns (ChannelReadResponse) {}
+  rpc ChannelUsers(ChannelUsersRequest) returns (ChannelUsersResponse) {}
+  rpc ChannelUsersAdd(ChannelUsersAddRequest) returns (ChannelUsersAddResponse) {}
+  rpc ChannelUsersRemove(ChannelUsersRemoveRequest) returns (ChannelUsersRemoveResponse) {}
   
   // Messages
   rpc MessagePrepare(MessagePrepareRequest) returns (MessagePrepareResponse) {}
@@ -514,13 +517,22 @@ message MessagesResponse {
   repeated Message messages = 1;
 }
 
+enum ChannelType {
+  option (go.enum) = {name: "ChannelType"};
+
+  CHANNEL_UNKNOWN = 0 [(go.value) = {name: "UnknownChannelType"}];
+  CHANNEL_TEAM = 1 [(go.value) = {name: "TeamChannelType"}];
+  CHANNEL_USERS = 2 [(go.value) = {name: "UsersChannelType"}];
+}
+
 message Channel {
   string id = 1 [(go.field) = {name: "ID"}];
   string name = 2;
-  string snippet = 3;
-  int64 updatedAt = 4;
-  int64 index = 5;
-  int64 readIndex = 10;
+  ChannelType type = 3;
+
+  string snippet = 10;
+  int64 updatedAt = 11;
+  int64 index = 20;
 }
 
 message ChannelsRequest {
@@ -530,9 +542,35 @@ message ChannelsResponse {
   repeated Channel channels = 1;
 }
 
+message ChannelUser {
+  string id = 1 [(go.field) = {name: "ID"}];
+  string name = 2;
+}
+
+message ChannelUsersRequest {
+  string channel = 1;
+}
+message ChannelUsersResponse {
+  repeated ChannelUser users = 1;
+}
+
+message ChannelUsersAddRequest {
+  string channel = 1;
+  repeated string users = 2;
+}
+message ChannelUsersAddResponse {}
+
+message ChannelUsersRemoveRequest {
+  string channel = 1;
+  repeated string users = 2;
+}
+message ChannelUsersRemoveResponse {}
+
 message ChannelCreateRequest {
   string name = 1;
-  bool private = 2;
+  string description = 2;
+  
+  bool private = 10;
 }
 message ChannelCreateResponse {
   string id = 1 [(go.field) = {name: "ID"}];
