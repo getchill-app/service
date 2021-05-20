@@ -17,12 +17,6 @@ func (s *service) command(ctx context.Context, cmd string, channel string) (*Mes
 	logger.Debugf("Channel command: %s %v", cmd0, args)
 
 	switch cmd0 {
-	case "/invite":
-		resp, err := s.ChannelInvite(ctx, &ChannelInviteRequest{Channel: channel, Recipients: args})
-		if err != nil {
-			return nil, err
-		}
-		return resp.Message, nil
 	case "/leave":
 		_, err := s.ChannelLeave(ctx, &ChannelLeaveRequest{Channel: channel})
 		if err != nil {

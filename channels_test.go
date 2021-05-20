@@ -23,7 +23,6 @@ func TestChannelMessages(t *testing.T) {
 
 	testAccountSetup(t, aliceServiceEnv, "alice@keys.pub", alice)
 	testTeamCreate(t, aliceService, team)
-	testUserSetupGithub(t, env, aliceService, alice, "alice")
 
 	// Alice creates a channel
 	channelCreate, err := aliceService.ChannelCreate(ctx, &ChannelCreateRequest{

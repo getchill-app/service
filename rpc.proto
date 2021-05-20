@@ -25,31 +25,9 @@ service RPC {
   rpc AccountSetUsername(AccountSetUsernameRequest) returns (AccountSetUsernameResponse) {}
   rpc TeamCreate(TeamCreateRequest) returns (TeamCreateResponse) {}
 
-  rpc KeyGenerate(KeyGenerateRequest) returns (KeyGenerateResponse) {}
-  rpc Keys(KeysRequest) returns (KeysResponse) {}
-  rpc Key(KeyRequest) returns (KeyResponse) {}
-  rpc KeyImport(KeyImportRequest) returns (KeyImportResponse) {}
-  rpc KeyExport(KeyExportRequest) returns (KeyExportResponse) {}
-  rpc KeyRemove(KeyRemoveRequest) returns (KeyRemoveResponse) {}
-  rpc KeySearch(KeySearchRequest) returns (KeySearchResponse) {}
-
-  rpc User(UserRequest) returns (UserResponse) {}  
-  rpc UserSearch(UserSearchRequest) returns (UserSearchResponse) {}
-  rpc UserService(UserServiceRequest) returns (UserServiceResponse) {}
-  rpc UserSign(UserSignRequest) returns (UserSignResponse) {}
-  rpc UserAdd(UserAddRequest) returns (UserAddResponse) {}      
-
-  rpc Pull(PullRequest) returns (PullResponse) {}
-
-  rpc Sigchain(SigchainRequest) returns (SigchainResponse) {}
-  rpc Statement(StatementRequest) returns (StatementResponse) {}
-  rpc StatementCreate(StatementCreateRequest) returns (StatementCreateResponse) {}  
-  rpc StatementRevoke(StatementRevokeRequest) returns (StatementRevokeResponse) {}  
-  
   // Channels
   rpc Channels(ChannelsRequest) returns (ChannelsResponse) {}
   rpc ChannelCreate(ChannelCreateRequest) returns (ChannelCreateResponse) {}  
-  rpc ChannelInvite(ChannelInviteRequest) returns (ChannelInviteResponse) {}
   rpc ChannelLeave(ChannelLeaveRequest) returns (ChannelLeaveResponse) {}
   rpc ChannelRead(ChannelReadRequest) returns (ChannelReadResponse) {}
   rpc ChannelUsers(ChannelUsersRequest) returns (ChannelUsersResponse) {}
@@ -66,11 +44,7 @@ service RPC {
 
   // DB
   rpc Collections(CollectionsRequest) returns (CollectionsResponse) {}
-  rpc Documents(DocumentsRequest) returns (DocumentsResponse) {}
-
-  // Team
-  rpc TeamInvites(TeamInvitesRequest) returns (TeamInvitesResponse) {}
-
+  rpc Documents(DocumentsRequest) returns (DocumentsResponse) {}  
 }
 
 message AccountRegisterRequest {
@@ -179,209 +153,6 @@ message Team {
   string domain = 2;
 }
 
-message KeyGenerateRequest {
-  string type = 1;
-}
-message KeyGenerateResponse {
-  string kid = 1 [(go.field) = {name: "KID"}];  
-}
-
-message Key {
-  // ID identifier.
-  string id = 1 [(go.field) = {name: "ID"}];
-  // Type of key.
-  string type = 3;
-  // IsPrivate if private key.
-  bool isPrivate = 4;
-  // User associated with this key.
-  User user = 6;  
-  // Saved if saved locally.
-  bool saved = 10;
-  
-
-  // SigchainLength is length of sigchain (if any).
-  int32 sigchainLength = 40;
-  int64 sigchainUpdatedAt = 41;
-}
-message KeyRequest {
-  // Key can be kid or user@service.
-  string key = 1;
-  
-  // Search, if true, will search for the key on the server.
-  bool search = 4;
-  // Update, if true, will update the sigchain from the server.
-  bool update = 5;  
-}
-
-message KeyResponse {
-  Key key = 1;
-}
-
-enum SortDirection {
-  option (go.enum) = {name: "SortDirection"};
-
-  ASC = 0  [(go.value) = {name: "SortAsc"}];
-  DESC = 1 [(go.value) = {name: "SortDesc"}];
-}
-
-message KeysRequest {
-  string query = 1;
-  repeated string types = 2; 
-
-  string sortField = 10;
-  SortDirection sortDirection = 11;
-}
-message KeysResponse {
-  repeated Key keys = 1;
-  string sortField = 10;
-  SortDirection sortDirection = 11;
-}
-
-enum ExportType {
-  option (go.enum) = {name: "ExportType"};
-  
-  DEFAULT_EXPORT_TYPE = 0 [(go.value) = {name: "DefaultExport"}];
-  SSH_EXPORT_TYPE = 1 [(go.value) = {name: "SSHExport"}];
-}
-
-message KeyExportRequest {
-  string kid = 1 [(go.field) = {name: "KID"}];
-  string password = 2;
-  ExportType type = 3;
-  bool public = 4;
-  bool noPassword = 5;
-}
-message KeyExportResponse {
-  bytes export = 1;
-}
-
-message KeyImportRequest {
-  bytes in = 1;
-  string password = 2;  
-  bool update = 3;
-}
-message KeyImportResponse {
-  string kid = 1 [(go.field) = {name: "KID"}];
-}
-
-message KeyRemoveRequest {
-  // KID of key to remove.
-  string kid = 1 [(go.field) = {name: "KID"}];
-}
-message KeyRemoveResponse {}
-
-enum UserStatus {
-  option (go.enum) = {name: "UserStatus"};
-
-  USER_UNKNOWN = 0 [(go.value) = {name: "UserStatusUnknown"}];
-  USER_OK = 1 [(go.value) = {name: "UserStatusOK"}];
-  
-  USER_RESOURCE_NOT_FOUND = 20 [(go.value) = {name: "UserStatusResourceNotFound"}];
-  
-  USER_CONTENT_NOT_FOUND = 30 [(go.value) = {name: "UserStatusContentNotFound"}];
-  USER_CONTENT_INVALID = 31 [(go.value) = {name: "UserStatusContentInvalid"}];
-  
-  USER_CONN_FAILURE = 40 [(go.value) = {name: "UserStatusConnFailure"}];
-  
-  USER_FAILURE = 50 [(go.value) = {name: "UserStatusFailure"}];
-}
-
-message User {  
-  string id = 1 [(go.field) = {name: "ID"}];
-  string name = 2;
-  string kid = 3 [(go.field) = {name: "KID"}];
-  int32 seq = 4;
-  string service = 5; 
-  string url = 6 [(go.field) = {name: "URL"}];
-  
-  UserStatus status = 10;
-  int64 verifiedAt = 11; 
-  int64 timestamp = 12;
-  bool proxied = 13;
-  
-  string err = 20;
-}
-
-message UserRequest {
-  string kid = 1 [(go.field) = {name: "KID"}];
-  bool local = 4;
-}
-message UserResponse {
-  User user = 1;
-}
-
-message UserSearchRequest {
-  string query = 1;  
-  int32 limit = 3;
-  bool local = 4;
-}
-message UserSearchResponse {
-  repeated User users = 1;  
-}
-
-message UserServiceRequest {
-  // KID to use, or if empty the current key.
-  string kid = 1 [(go.field) = {name: "KID"}];
-  // Service such as twitter, github.
-  string service = 2;
-}
-message UserServiceResponse {
-  // Service such as twitter, github.
-  string service = 1;
-}
-
-message UserSignRequest {
-  // KID to use, or if empty the current key.
-  string kid = 1 [(go.field) = {name: "KID"}];
-  // Service such as twitter, github.
-  string service = 2;
-  // Name is username on the service.
-  string name = 3;
-}
-message UserSignResponse {
-  // Message is signed message.
-  string message = 1;
-  // Name in request.
-  string name = 2;
-}
-
-message UserAddRequest {
-  // KID to use, or if empty the current key.
-  string kid = 1 [(go.field) = {name: "KID"}];
-  // Service such as twitter, github.
-  string service = 2;
-  // Name is username on the service.
-  string name = 3; 
-  // URL is location of signed message on the service.
-  string url = 4 [(go.field) = {name: "URL"}];
-
-  // Local, if true, won't save to the current key server.
-  bool local = 5;
-}
-message UserAddResponse {
-  User user = 1;
-  Statement statement = 2;
-}
-
-message Statement {
-  // Sig is the signature bytes.
-  bytes sig = 1;
-  // Data that was signed.
-  bytes data = 2;
-  // KID is the key that signed.
-  string kid = 3 [(go.field) = {name: "KID"}];
-  // Seq in a sigchain (1 is root).
-  int32 seq = 4;
-  // Prev is a hash of the previous item in the sigchain.
-  bytes prev = 5;
-  // Revoke refers to a previous signed seq to revoke.
-	int32 revoke = 6;
-  // Timestamp ...
-  int64 timestamp = 7;
-	// Type (optional).
-  string type = 8;  
-}
-
 enum Encoding {
   option (go.enum) = {name: "Encoding"};
 
@@ -411,61 +182,6 @@ message RandPasswordRequest {
 message RandPasswordResponse {
   string password = 1;
 }
-
-message KeySearchRequest {
-  string query = 1;  
-}
-message KeySearchResponse {
-  repeated Key keys = 1;  
-}
-
-message PullRequest {
-  string key = 1;  
-}
-message PullResponse {
-  repeated string kids = 1 [(go.field) = {name: "KIDs"}];
-}
-
-
-message SigchainRequest {
-  string kid = 1 [(go.field) = {name: "KID"}];  
-}
-message SigchainResponse {
-  Key key = 1;
-  repeated Statement statements = 2;
-}
-
-message StatementRequest {
-  string kid = 1 [(go.field) = {name: "KID"}];  
-  int32 seq = 2;
-}
-message StatementResponse {
-  Statement statement = 1;
-}
-
-message StatementCreateRequest {
-  bytes data = 1;
-  string kid = 2 [(go.field) = {name: "KID"}];  
-
-  // Local, if true, won't save to the current key server.
-  bool local = 5;
-}
-message StatementCreateResponse {
-  Statement statement = 1;
-}
-
-message StatementRevokeRequest {
-  // Seq to revoke.
-  int32 seq = 1;
-  string kid = 2 [(go.field) = {name: "KID"}];  
-
-  // Local, if true, won't save to the current key server.
-  bool local = 5;
-}
-message StatementRevokeResponse {
-  Statement statement = 1;
-}
-
 
 enum MessageStatus {
   option (go.enum) = {name: "MessageStatus"};
@@ -637,15 +353,5 @@ message DocumentsRequest {
 }
 message DocumentsResponse {
   repeated Document documents = 1;
-}
-
-message TeamInvite {
-  Team team = 1;
-  string invitedBy = 2;
-}
-
-message TeamInvitesRequest {}
-message TeamInvitesResponse {
-  repeated TeamInvite invites = 1;
 }
 

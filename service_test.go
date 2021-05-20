@@ -10,6 +10,7 @@ import (
 
 	"github.com/getchill-app/http/api"
 	chillserver "github.com/getchill-app/http/server"
+	"github.com/getchill-app/keyring/testutil"
 	"github.com/keys-pub/keys"
 	kpserver "github.com/keys-pub/keys-ext/http/server"
 	"github.com/keys-pub/keys/dstore"
@@ -18,6 +19,12 @@ import (
 	"github.com/keys-pub/keys/users"
 	"github.com/stretchr/testify/require"
 )
+
+var alice = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x01))
+var bob = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x02))
+
+// var charlie = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x03))
+var team = keys.NewEdX25519KeyFromSeed(testutil.Seed(0x90))
 
 func newEnv(t *testing.T, appName string, keysPubServerURL string, chillServerURL string) (*Env, CloseFn) {
 	if appName == "" {
@@ -110,14 +117,6 @@ func testAuthSetup(t *testing.T, service *service) {
 		Type:   PasswordAuth,
 	})
 	require.NoError(t, err)
-}
-
-func testServiceSetup(t *testing.T, env *testServerEnv, email string, account *keys.EdX25519Key) (*service, CloseFn) {
-	serviceEnv, closeFn := newTestServiceEnv(t, env)
-	service := serviceEnv.service
-	testAuthSetup(t, service)
-	testAccountSetup(t, serviceEnv, email, account)
-	return service, closeFn
 }
 
 func testAccountSetup(t *testing.T, env *serviceEnv, email string, account *keys.EdX25519Key) {

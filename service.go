@@ -35,10 +35,6 @@ type service struct {
 
 	unlockMtx sync.Mutex
 
-	checkMtx      sync.Mutex
-	checking      bool
-	checkCancelFn func()
-
 	messenger *messaging.Messenger
 	relay     *relay
 }
@@ -86,18 +82,17 @@ func newService(
 	}
 
 	return &service{
-		authIr:        authIr,
-		build:         build,
-		env:           env,
-		scs:           scs,
-		users:         usrs,
-		db:            db,
-		client:        client,
-		kclient:       kclient,
-		keyring:       keyring,
-		relay:         relay,
-		clock:         clock,
-		checkCancelFn: func() {},
+		authIr:  authIr,
+		build:   build,
+		env:     env,
+		scs:     scs,
+		users:   usrs,
+		db:      db,
+		client:  client,
+		kclient: kclient,
+		keyring: keyring,
+		relay:   relay,
+		clock:   clock,
 	}, nil
 }
 

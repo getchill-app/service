@@ -77,8 +77,6 @@ func (s *service) authUnlock(ctx context.Context, secret string, typ AuthType, c
 	logger.Infof("Unlocked (%s)", typ)
 	token := s.authIr.registerToken(client)
 
-	s.startCheck()
-
 	return token, mk, nil
 }
 
@@ -148,7 +146,6 @@ func (s *service) authLock(ctx context.Context) error {
 	defer s.unlockMtx.Unlock()
 	logger.Infof("Locking...")
 
-	s.stopCheck()
 	s.db.Close()
 	s.authIr.clearTokens()
 	if err := s.keyring.Lock(); err != nil {
